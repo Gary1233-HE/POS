@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- saved from url=(0048)file:///C:/Users/USER/Downloads/pos-cloud_3.html -->
-<html lang="zh-TW"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>收銀記帳</title>
-<link href="./收銀記帳_files/css2" rel="stylesheet">
-<script src="./收銀記帳_files/react.production.min.js.下載"></script>
-<script src="./收銀記帳_files/react-dom.production.min.js.下載"></script>
-<script src="./收銀記帳_files/firebase-app-compat.js.下載"></script>
-<script src="./收銀記帳_files/firebase-firestore-compat.js.下載"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 firebase.initializeApp({
   apiKey:"AIzaSyAJ9vXgTu_FStBF7JBM369CP4xI5jsAETA",
@@ -164,24 +164,18 @@ input::placeholder{color:var(--t3)}
 .sync-dot.err{background:var(--red)}
 .sync-dot.ing{background:var(--ora);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:999}
-.loading-spinner{width:32px;height:32px;border:3px solid var(--bd);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-text{font-size:.82rem;color:var(--t3)}
 </style>
 </head>
 <body>
-<div id="root"><div><div class="nav"><button class="ntab on"><span class="sn">01</span>設定</button><button class="ntab"><span class="sn">02</span>收銀</button><button class="ntab"><span class="sn">03</span>結算</button><button class="ntab"><span class="sn">04</span>歷史</button></div><div class="pg on"><div class="sync-bar"><div class="sync-dot err"></div><span>同步失敗</span></div><div class="fbox"><div class="sec">固定費用</div><div class="frow"><input type="text" placeholder="費用名稱" value="攤位費"><input type="number" placeholder="$0" min="0" value=""><button class="rm-btn">×</button></div><button class="add-row-btn">＋ 新增費用</button></div><div class="sec">品項設定</div><div class="icard"><div class="icard-top"><input type="text" placeholder="品項名稱" value="" style="font-family: &quot;Noto Sans TC&quot;, sans-serif; font-size: 0.9rem;"><button class="rm-btn">×</button></div><div class="icard-fields"><div style="display: flex; align-items: center; justify-content: space-between;"><div class="fl" style="margin-bottom: 0px;">計量方式</div><div class="ptog"><button class="pb on">件數</button><button class="pb">售出金額</button></div></div><div><div class="fl">單件售價 $</div><input type="number" placeholder="0" min="0" value=""></div><div><div class="fl"><span>毛利率 %</span><div class="ptog"><button class="pb">成本$</button><button class="pb on">毛利%</button></div></div><input type="number" placeholder="0-100" min="0" value=""></div></div></div><button class="add-item-btn">＋ 新增品項</button><button class="btn-primary">開始收銀 →</button></div></div></div>
+<div id="root"></div>
 <script>
 const {useState,useEffect,useCallback,useRef}=React;
 const h=React.createElement;
-
 const fmt=n=>(n<0?'-$':'$')+Math.abs(n).toLocaleString('zh-TW',{maximumFractionDigits:0});
 const todayStr=()=>new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'});
 const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
 let _uid=Date.now();
 const uid=()=>String(++_uid);
-
 function calcGP(it,revenue,qty){
   if(it.profitMode==='margin') return revenue*(it.profitValue/100);
   if(it.priceMode==='unit') return revenue-it.profitValue*(qty||0);
@@ -195,58 +189,20 @@ function itemMeta(it){
   const pct=it.profitMode==='margin'?it.profitValue:(100-it.profitValue);
   return {price:'售出金額',gpStr:'毛利率 '+pct+'%'};
 }
-
-// ═══ Firebase helpers (compat 版) ═══
 const db=()=>window._db;
-
-async function fbSaveConfig(cfg){
-  await db().collection('config').doc('current').set(cfg);
-}
-async function fbLoadConfig(){
-  const snap=await db().collection('config').doc('current').get();
-  return snap.exists?snap.data():null;
-}
-async function fbSaveTodayTx(transactions){
-  await db().collection('days').doc(todayStr()).set({transactions,updatedAt:Date.now()},{merge:true});
-}
-async function fbLoadTodayTx(){
-  const snap=await db().collection('days').doc(todayStr()).get();
-  return snap.exists?(snap.data().transactions||[]):[];
-}
-async function fbSaveDaySummary(entry){
-  await db().collection('history').doc(entry.date).set(entry);
-}
-async function fbLoadHistory(){
-  const snap=await db().collection('history').get();
-  return snap.docs.map(d=>d.data());
-}
-function fbWatchTodayTx(cb){
-  return db().collection('days').doc(todayStr()).onSnapshot(snap=>{
-    if(snap.exists) cb(snap.data().transactions||[]);
-  });
-}
-
-// ═══ PillToggle ═══
-function PillToggle({options,value,onChange}){
-  return h('div',{className:'ptog'},
-    options.map(o=>h('button',{key:o.v,className:'pb'+(value===o.v?' on':''),onClick:()=>onChange(o.v)},o.l))
-  );
-}
-
-// ═══ SyncBar ═══
-function SyncBar({status}){
-  const map={ok:'已同步',ing:'同步中…',err:'同步失敗'};
-  if(!status||status==='idle')return null;
-  return h('div',{className:'sync-bar'},h('div',{className:'sync-dot '+status}),h('span',null,map[status]||''));
-}
-
-// ═══ PAGE 1 設定 ═══
+async function fbSaveConfig(cfg){await db().collection('config').doc('current').set(cfg);}
+async function fbLoadConfig(){const snap=await db().collection('config').doc('current').get();return snap.exists?snap.data():null;}
+async function fbSaveTodayTx(transactions){await db().collection('days').doc(todayStr()).set({transactions,updatedAt:Date.now()},{merge:true});}
+async function fbLoadTodayTx(){const snap=await db().collection('days').doc(todayStr()).get();return snap.exists?(snap.data().transactions||[]):[];}
+async function fbSaveDaySummary(entry){await db().collection('history').doc(entry.date).set(entry);}
+async function fbLoadHistory(){const snap=await db().collection('history').get();return snap.docs.map(d=>d.data());}
+function fbWatchTodayTx(cb){return db().collection('days').doc(todayStr()).onSnapshot(snap=>{if(snap.exists) cb(snap.data().transactions||[]);});}
+function PillToggle({options,value,onChange}){return h('div',{className:'ptog'},options.map(o=>h('button',{key:o.v,className:'pb'+(value===o.v?' on':''),onClick:()=>onChange(o.v)},o.l)));}
+function SyncBar({status}){const map={ok:'已同步',ing:'同步中…',err:'同步失敗'};if(!status||status==='idle')return null;return h('div',{className:'sync-bar'},h('div',{className:'sync-dot '+status}),h('span',null,map[status]||''));}
 function PageSetup({config,setConfig,goNext,syncStatus}){
   const {fixedCosts,items}=config;
   const [history,setHistory]=useState([]);
-  useEffect(()=>{
-    fbLoadHistory().then(h=>setHistory([...h].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5)));
-  },[]);
+  useEffect(()=>{fbLoadHistory().then(h=>setHistory([...h].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5)));},[]);
   const setFixed=(id,f,v)=>setConfig(c=>({...c,fixedCosts:c.fixedCosts.map(r=>r.id===id?{...r,[f]:v}:r)}));
   const addFixed=()=>setConfig(c=>({...c,fixedCosts:[...c.fixedCosts,{id:uid(),name:'',amount:''}]}));
   const rmFixed=id=>setConfig(c=>({...c,fixedCosts:c.fixedCosts.filter(r=>r.id!==id)}));
@@ -255,11 +211,7 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
   const setProfitMode=(id,m)=>setConfig(c=>({...c,items:c.items.map(it=>it.id===id?{...it,profitMode:m}:it)}));
   const addItem=()=>setConfig(c=>({...c,items:[...c.items,{id:uid(),name:'',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:''}]}));
   const rmItem=id=>setConfig(c=>({...c,items:c.items.filter(it=>it.id!==id)}));
-  const loadConfig=d=>{
-    if(window.confirm('載入 '+d.date+' 的品項設定？\n（會覆蓋目前設定）')){
-      setConfig({fixedCosts:(d.fixedCosts||[]).map(f=>({...f,id:uid()})),items:(d.items||[]).map(it=>({...it,id:uid()}))});
-    }
-  };
+  const loadConfig=d=>{if(window.confirm('載入 '+d.date+' 的品項設定？\n（會覆蓋目前設定）')){setConfig({fixedCosts:(d.fixedCosts||[]).map(f=>({...f,id:uid()})),items:(d.items||[]).map(it=>({...it,id:uid()}))});}};
   return h('div',{className:'pg on'},
     h(SyncBar,{status:syncStatus}),
     h('div',{className:'fbox'},
@@ -274,9 +226,7 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
     h('div',{className:'sec'},'品項設定'),
     items.map(it=>h('div',{key:it.id,className:'icard'},
       h('div',{className:'icard-top'},
-        h('input',{type:'text',value:it.name,placeholder:'品項名稱',
-          style:{fontFamily:"'Noto Sans TC',sans-serif",fontSize:'.9rem'},
-          onChange:e=>setItem(it.id,'name',e.target.value)}),
+        h('input',{type:'text',value:it.name,placeholder:'品項名稱',style:{fontFamily:"'Noto Sans TC',sans-serif",fontSize:'.9rem'},onChange:e=>setItem(it.id,'name',e.target.value)}),
         h('button',{className:'rm-btn',onClick:()=>rmItem(it.id)},'×')
       ),
       h('div',{className:'icard-fields'},
@@ -293,9 +243,7 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
             h('span',null,it.profitMode==='margin'?'毛利率 %':(it.priceMode==='unit'?'單件成本 $':'成本佔比 %')),
             h(PillToggle,{options:[{v:'cost',l:it.priceMode==='unit'?'成本$':'成本%'},{v:'margin',l:'毛利%'}],value:it.profitMode,onChange:m=>setProfitMode(it.id,m)})
           ),
-          h('input',{type:'number',value:it.profitValue,
-            placeholder:it.profitMode==='cost'&&it.priceMode==='unit'?'0':'0-100',
-            min:0,onChange:e=>setItem(it.id,'profitValue',e.target.value)})
+          h('input',{type:'number',value:it.profitValue,placeholder:it.profitMode==='cost'&&it.priceMode==='unit'?'0':'0-100',min:0,onChange:e=>setItem(it.id,'profitValue',e.target.value)})
         )
       )
     )),
@@ -303,350 +251,100 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
     h('button',{className:'btn-primary',onClick:goNext},'開始收銀 →'),
     history.length>0&&h('div',null,
       h('div',{className:'sec',style:{marginTop:20}},'載入過去設定'),
-      h('div',{className:'saved-configs'},
-        history.map(d=>h('div',{key:d.date,className:'sc-row',onClick:()=>loadConfig(d)},
-          h('div',{className:'sc-date'},d.date),
-          h('div',{className:'sc-info'},(d.items||[]).length+' 個品項'),
-          h('div',{className:'sc-load'},'載入')
-        ))
-      )
+      h('div',{className:'saved-configs'},history.map(d=>h('div',{key:d.date,className:'sc-row',onClick:()=>loadConfig(d)},h('div',{className:'sc-date'},d.date),h('div',{className:'sc-info'},(d.items||[]).length+' 個品項'),h('div',{className:'sc-load'},'載入'))))
     )
   );
 }
-
-// ═══ PAGE 2 收銀 ═══
 function PageCashier({config,transactions,setTransactions,syncStatus}){
   const {items}=config;
   const [cart,setCart]=useState({});
   const getCart=id=>cart[id]||{selected:false,qty:1,amount:''};
   const updCart=(id,patch)=>setCart(c=>({...c,[id]:{...getCart(id),...patch}}));
-  const dayTotals=useCallback(()=>{
-    let rev=0,gp=0;
-    transactions.forEach(tx=>tx.lines.forEach(l=>{
-      const it=items.find(i=>i.id===l.itemId);if(!it)return;
-      const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};
-      const revenue=itU.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);
-      rev+=revenue;gp+=calcGP(itU,revenue,l.qty||0);
-    }));
-    return{rev,gp};
-  },[transactions,items]);
-  const subtotal=items.reduce((s,it)=>{
-    const st=getCart(it.id);if(!st.selected)return s;
-    return s+(it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(st.qty||1):(parseFloat(st.amount)||0));
-  },0);
-  const commit=()=>{
-    const lines=[];
-    items.forEach(it=>{
-      const st=getCart(it.id);if(!st.selected)return;
-      lines.push(it.priceMode==='unit'
-        ?{itemId:it.id,qty:st.qty||1,amount:null}
-        :{itemId:it.id,qty:null,amount:parseFloat(st.amount)||0});
-    });
-    if(!lines.length){alert('請先選擇品項');return}
-    const newTx=[...transactions,{id:uid(),lines,time:nowTime()}];
-    setTransactions(newTx);
-    setCart({});
-  };
+  const dayTotals=useCallback(()=>{let rev=0,gp=0;transactions.forEach(tx=>tx.lines.forEach(l=>{const it=items.find(i=>i.id===l.itemId);if(!it)return;const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};const revenue=itU.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);rev+=revenue;gp+=calcGP(itU,revenue,l.qty||0);}));return{rev,gp};},[transactions,items]);
+  const subtotal=items.reduce((s,it)=>{const st=getCart(it.id);if(!st.selected)return s;return s+(it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(st.qty||1):(parseFloat(st.amount)||0));},0);
+  const commit=()=>{const lines=[];items.forEach(it=>{const st=getCart(it.id);if(!st.selected)return;lines.push(it.priceMode==='unit'?{itemId:it.id,qty:st.qty||1,amount:null}:{itemId:it.id,qty:null,amount:parseFloat(st.amount)||0});});if(!lines.length){alert('請先選擇品項');return}const newTx=[...transactions,{id:uid(),lines,time:nowTime()}];setTransactions(newTx);setCart({});};
   const delTx=id=>setTransactions(transactions.filter(t=>t.id!==id));
   const {rev,gp}=dayTotals();
-  const txLine=(tx,i)=>{
-    let txRev=0,txGp=0;const parts=[];
-    tx.lines.forEach(l=>{
-      const it=items.find(i=>i.id===l.itemId);if(!it)return;
-      const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};
-      const revenue=itU.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);
-      txRev+=revenue;txGp+=calcGP(itU,revenue,l.qty||0);
-      parts.push(it.priceMode==='unit'?(it.name||'未命名')+'×'+l.qty:(it.name||'未命名'));
-    });
-    return h('div',{key:tx.id,className:'txcard'},
-      h('div',{className:'txn'},'#'+(i+1)),
-      h('div',{className:'txc'},
-        h('div',{className:'txi'},parts.join('、')),
-        h('div',{className:'txa'},
-          h('span',{className:'txr'},fmt(txRev)),
-          h('span',{className:'txg'},'毛利 '+fmt(txGp)),
-          h('span',{className:'txt2'},tx.time)
-        )
-      ),
-      h('button',{className:'tx-del',onClick:()=>delTx(tx.id)},'✕')
-    );
-  };
+  const txLine=(tx,i)=>{let txRev=0,txGp=0;const parts=[];tx.lines.forEach(l=>{const it=items.find(i=>i.id===l.itemId);if(!it)return;const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};const revenue=itU.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);txRev+=revenue;txGp+=calcGP(itU,revenue,l.qty||0);parts.push(it.priceMode==='unit'?(it.name||'未命名')+'×'+l.qty:(it.name||'未命名'));});return h('div',{key:tx.id,className:'txcard'},h('div',{className:'txn'},'#'+(i+1)),h('div',{className:'txc'},h('div',{className:'txi'},parts.join('、')),h('div',{className:'txa'},h('span',{className:'txr'},fmt(txRev)),h('span',{className:'txg'},'毛利 '+fmt(txGp)),h('span',{className:'txt2'},tx.time))),h('button',{className:'tx-del',onClick:()=>delTx(tx.id)},'✕'));};
   return h('div',{className:'pg on'},
     h(SyncBar,{status:syncStatus}),
-    h('div',{className:'day-bar'},
-      h('div',{className:'db'},h('div',{className:'db-l'},'今日營業額'),h('div',{className:'db-v'},fmt(rev))),
-      h('div',{className:'db'},h('div',{className:'db-l'},'今日毛利'),h('div',{className:'db-v '+(gp>=0?'g':'r')},fmt(gp)))
-    ),
+    h('div',{className:'day-bar'},h('div',{className:'db'},h('div',{className:'db-l'},'今日營業額'),h('div',{className:'db-v'},fmt(rev))),h('div',{className:'db'},h('div',{className:'db-l'},'今日毛利'),h('div',{className:'db-v '+(gp>=0?'g':'r')},fmt(gp)))),
     h('div',{className:'tx-box'},
-      h('div',{className:'tx-hd'},
-        h('span',{className:'tx-hd-l'},'新增交易'),
-        h('span',{className:'tx-sub'},'小計 '+fmt(subtotal))
-      ),
-      h('div',{className:'picker'},
-        items.map(it=>{
-          const st=getCart(it.id);
-          const meta=itemMeta({...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0});
-          return h('div',{key:it.id,className:'prow'+(st.selected?' sel':''),
-            onClick:e=>{if(e.target.closest('.pctrl'))return;updCart(it.id,{selected:!st.selected})}},
-            h('div',{className:'pchk'},st.selected?'✓':''),
-            h('div',{className:'pinfo'},
-              h('div',{className:'pname'},it.name||'未命名'),
-              h('div',{className:'pmeta'},meta.price,h('span',{className:'gp'},meta.gpStr))
-            ),
-            h('div',{className:'pctrl'},
-              it.priceMode==='unit'
-                ?h('div',{className:'qctrl'},
-                    h('button',{className:'qb m',onClick:()=>updCart(it.id,{qty:Math.max(1,(st.qty||1)-1)})},'−'),
-                    h('div',{className:'qdsp'},st.qty||1),
-                    h('button',{className:'qb p',onClick:()=>updCart(it.id,{qty:(st.qty||1)+1})},'＋')
-                  )
-                :h('div',{className:'awt'},
-                    h('span',{className:'ds'},'$'),
-                    h('input',{type:'number',min:0,placeholder:'0',value:st.amount||'',
-                      style:{paddingLeft:14},
-                      onClick:e=>e.stopPropagation(),
-                      onChange:e=>updCart(it.id,{amount:e.target.value})})
-                  )
-            )
-          );
-        })
-      ),
+      h('div',{className:'tx-hd'},h('span',{className:'tx-hd-l'},'新增交易'),h('span',{className:'tx-sub'},'小計 '+fmt(subtotal))),
+      h('div',{className:'picker'},items.map(it=>{const st=getCart(it.id);const meta=itemMeta({...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0});return h('div',{key:it.id,className:'prow'+(st.selected?' sel':''),onClick:e=>{if(e.target.closest('.pctrl'))return;updCart(it.id,{selected:!st.selected})}},h('div',{className:'pchk'},st.selected?'✓':''),h('div',{className:'pinfo'},h('div',{className:'pname'},it.name||'未命名'),h('div',{className:'pmeta'},meta.price,h('span',{className:'gp'},meta.gpStr))),h('div',{className:'pctrl'},it.priceMode==='unit'?h('div',{className:'qctrl'},h('button',{className:'qb m',onClick:()=>updCart(it.id,{qty:Math.max(1,(st.qty||1)-1)})},'−'),h('div',{className:'qdsp'},st.qty||1),h('button',{className:'qb p',onClick:()=>updCart(it.id,{qty:(st.qty||1)+1})},'＋')):h('div',{className:'awt'},h('span',{className:'ds'},'$'),h('input',{type:'number',min:0,placeholder:'0',value:st.amount||'',style:{paddingLeft:14},onClick:e=>e.stopPropagation(),onChange:e=>updCart(it.id,{amount:e.target.value})}))));})),
       h('button',{className:'done-btn',onClick:commit},'✓  完成交易')
     ),
-    h('div',{className:'rec-hd'},
-      h('span',{className:'rec-l'},'交易記錄'),
-      h('span',{className:'rec-c'},transactions.length+' 筆')
-    ),
-    transactions.length===0
-      ?h('div',{className:'empty'},'尚無交易記錄')
-      :[...transactions].reverse().map((tx,ri)=>txLine(tx,transactions.length-ri-1))
+    h('div',{className:'rec-hd'},h('span',{className:'rec-l'},'交易記錄'),h('span',{className:'rec-c'},transactions.length+' 筆')),
+    transactions.length===0?h('div',{className:'empty'},'尚無交易記錄'):[...transactions].reverse().map((tx,ri)=>txLine(tx,transactions.length-ri-1))
   );
 }
-
-// ═══ PAGE 3 結算 ═══
-function PageSettle({config,transactions,onSave,syncStatus}){
+  function PageSettle({config,transactions,onSave,syncStatus}){
   const {items,fixedCosts}=config;
   const [saved,setSaved]=useState(false);
   const [saving,setSaving]=useState(false);
-  const calcAll=()=>{
-    let rev=0,gp=0;const stat={};
-    transactions.forEach(tx=>tx.lines.forEach(l=>{
-      const it=items.find(i=>i.id===l.itemId);if(!it)return;
-      const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};
-      const revenue=itU.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);
-      rev+=revenue;const igp=calcGP(itU,revenue,l.qty||0);gp+=igp;
-      if(!stat[l.itemId])stat[l.itemId]={rev:0,gp:0};
-      stat[l.itemId].rev+=revenue;stat[l.itemId].gp+=igp;
-    }));
-    const fixed=fixedCosts.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
-    return{rev,gp,fixed,net:gp-fixed,stat};
-  };
+  const calcAll=()=>{let rev=0,gp=0;const stat={};transactions.forEach(tx=>tx.lines.forEach(l=>{const it=items.find(i=>i.id===l.itemId);if(!it)return;const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};const revenue=itU.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);rev+=revenue;const igp=calcGP(itU,revenue,l.qty||0);gp+=igp;if(!stat[l.itemId])stat[l.itemId]={rev:0,gp:0};stat[l.itemId].rev+=revenue;stat[l.itemId].gp+=igp;}));const fixed=fixedCosts.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);return{rev,gp,fixed,net:gp-fixed,stat};};
   const {rev,gp,fixed,net,stat}=calcAll();
   const margin=rev>0?(net/rev*100):0;
-  const doSave=async()=>{
-    setSaving(true);
-    const entry={date:todayStr(),fixedCosts,items,transactions,rev,gp,net};
-    await fbSaveDaySummary(entry);
-    setSaved(true);setSaving(false);onSave();
-  };
+  const doSave=async()=>{setSaving(true);const entry={date:todayStr(),fixedCosts,items,transactions,rev,gp,net};await fbSaveDaySummary(entry);setSaved(true);setSaving(false);onSave();};
   return h('div',{className:'pg on'},
     h(SyncBar,{status:syncStatus}),
     h('div',{style:{fontFamily:"'Space Mono',monospace",fontSize:'.65rem',color:'var(--t3)',textAlign:'center',marginBottom:14,letterSpacing:'.06em'}},todayStr()),
-    h('div',{className:'settle-box'},
-      h('div',{className:'sb-l'},'當日淨利'),
-      h('div',{className:'sb-v '+(net<0?'neg':'')},fmt(net)),
-      h('div',{className:'sb-m'},'淨利率 '+margin.toFixed(1)+'%')
-    ),
+    h('div',{className:'settle-box'},h('div',{className:'sb-l'},'當日淨利'),h('div',{className:'sb-v '+(net<0?'neg':'')},fmt(net)),h('div',{className:'sb-m'},'淨利率 '+margin.toFixed(1)+'%')),
     h('div',{className:'stbl'},
       h('div',{className:'sr'},h('span',{className:'lb'},'營業額'),h('span',{className:'vl'},fmt(rev))),
       h('div',{className:'sr'},h('span',{className:'lb'},'毛利'),h('span',{className:'vl',style:{color:'var(--grn)'}},fmt(gp))),
-      fixedCosts.filter(r=>parseFloat(r.amount)>0).map(r=>
-        h('div',{key:r.id,className:'sr'},h('span',{className:'lb'},r.name||'固定費用'),h('span',{className:'vl',style:{color:'var(--red)'}},'-'+fmt(parseFloat(r.amount)||0)))
-      ),
+      fixedCosts.filter(r=>parseFloat(r.amount)>0).map(r=>h('div',{key:r.id,className:'sr'},h('span',{className:'lb'},r.name||'固定費用'),h('span',{className:'vl',style:{color:'var(--red)'}},'-'+fmt(parseFloat(r.amount)||0)))),
       h('div',{className:'sr tot'},h('span',{className:'lb'},'淨利'),h('span',{className:'vl',style:{color:net>=0?'var(--grn)':'var(--red)'}},fmt(net)))
     ),
     h('div',{className:'sec'},'品項統計'),
     h('div',{className:'sitems'},
       h('div',{className:'sih'},h('span',null,'品項'),h('span',{className:'r'},'小計'),h('span',{className:'r'},'毛利')),
-      items.map(it=>{
-        const s=stat[it.id]||{rev:0,gp:0};
-        return h('div',{key:it.id,className:'srow'},
-          h('div',{className:'nm'},it.name||'未命名'),
-          h('div',{className:'mn '+(s.rev===0?'z':'')},fmt(s.rev)),
-          h('div',{className:'mn '+(s.gp>0?'gp':s.gp===0?'z':'')},fmt(s.gp))
-        );
-      })
+      items.map(it=>{const s=stat[it.id]||{rev:0,gp:0};return h('div',{key:it.id,className:'srow'},h('div',{className:'nm'},it.name||'未命名'),h('div',{className:'mn '+(s.rev===0?'z':'')},fmt(s.rev)),h('div',{className:'mn '+(s.gp>0?'gp':s.gp===0?'z':'')},fmt(s.gp)));})
     ),
-    saved
-      ?h('div',{style:{textAlign:'center',color:'var(--grn)',fontSize:'.85rem',padding:'12px 0',fontWeight:700}},'✓ 已儲存至雲端')
-      :h('button',{className:'btn-primary',onClick:doSave,disabled:saving},saving?'儲存中…':'儲存今日記錄 ☁')
+    saved?h('div',{style:{textAlign:'center',color:'var(--grn)',fontSize:'.85rem',padding:'12px 0',fontWeight:700}},'✓ 已儲存至雲端'):h('button',{className:'btn-primary',onClick:doSave,disabled:saving},saving?'儲存中…':'儲存今日記錄 ☁')
   );
 }
-
-// ═══ PAGE 4 歷史 ═══
 function PageHistory(){
   const [open,setOpen]=useState({});
   const [copied,setCopied]=useState(null);
   const [history,setHistory]=useState([]);
   const [loading,setLoading]=useState(true);
-  useEffect(()=>{
-    fbLoadHistory().then(h=>{
-      setHistory([...h].sort((a,b)=>b.date.localeCompare(a.date)));
-      setLoading(false);
-    });
-  },[]);
+  useEffect(()=>{fbLoadHistory().then(h=>{setHistory([...h].sort((a,b)=>b.date.localeCompare(a.date)));setLoading(false);});},[]);
   const totalRev=history.reduce((s,d)=>s+(d.rev||0),0);
   const totalNet=history.reduce((s,d)=>s+(d.net||0),0);
-  function buildCopyText(d){
-    const margin=d.rev>0?(d.net/d.rev*100):0;
-    const fixedList=(d.fixedCosts||[]).filter(r=>parseFloat(r.amount)>0);
-    const stat={};
-    (d.transactions||[]).forEach(tx=>tx.lines.forEach(l=>{
-      const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;
-      const revenue=it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(l.qty||0):(l.amount||0);
-      if(!stat[l.itemId])stat[l.itemId]={name:it.name||'未命名',rev:0};
-      stat[l.itemId].rev+=revenue;
-    }));
-    const statEntries=Object.values(stat).filter(s=>s.rev>0);
-    let lines=[];
-    lines.push(d.date);
-    lines.push('營業額 '+fmt(d.rev||0)+'　淨利 '+fmt(d.net||0)+'（'+margin.toFixed(0)+'%）');
-    if(fixedList.length>0) lines.push(fixedList.map(r=>(r.name||'費用')+' -'+fmt(parseFloat(r.amount)||0)).join('　'));
-    if(statEntries.length>0){lines.push('');statEntries.forEach(s=>lines.push('· '+s.name+'　'+fmt(s.rev)));}
-    const txs=d.transactions||[];
-    if(txs.length>0){
-      lines.push('');
-      txs.forEach(tx=>{
-        const parts=[];let txRev=0;
-        tx.lines.forEach(l=>{
-          const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;
-          txRev+=it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(l.qty||0):(l.amount||0);
-          parts.push(it.priceMode==='unit'?(it.name||'?')+'×'+l.qty:(it.name||'?'));
-        });
-        lines.push((tx.time||'--:--')+'  '+parts.join(' ')+'  '+fmt(txRev));
-      });
-    }
-    return lines.join('\n');
-  }
-  function copyDay(d,e){
-    e.stopPropagation();
-    const text=buildCopyText(d);
-    const doIt=()=>{setCopied(d.date);setTimeout(()=>setCopied(null),2000)};
-    navigator.clipboard.writeText(text).then(doIt).catch(()=>{
-      const ta=document.createElement('textarea');
-      ta.value=text;ta.style.cssText='position:fixed;opacity:0';
-      document.body.appendChild(ta);ta.select();document.execCommand('copy');
-      document.body.removeChild(ta);doIt();
-    });
-  }
-  if(loading) return h('div',{className:'pg on'},h('div',{className:'empty'},'載入中…'));
+  function buildCopyText(d){const margin=d.rev>0?(d.net/d.rev*100):0;const fixedList=(d.fixedCosts||[]).filter(r=>parseFloat(r.amount)>0);const stat={};(d.transactions||[]).forEach(tx=>tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;const revenue=it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(l.qty||0):(l.amount||0);if(!stat[l.itemId])stat[l.itemId]={name:it.name||'未命名',rev:0};stat[l.itemId].rev+=revenue;}));const statEntries=Object.values(stat).filter(s=>s.rev>0);let lines=[];lines.push(d.date);lines.push('營業額 '+fmt(d.rev||0)+'　淨利 '+fmt(d.net||0)+'（'+margin.toFixed(0)+'%）');if(fixedList.length>0)lines.push(fixedList.map(r=>(r.name||'費用')+' -'+fmt(parseFloat(r.amount)||0)).join('　'));if(statEntries.length>0){lines.push('');statEntries.forEach(s=>lines.push('· '+s.name+'　'+fmt(s.rev)));}const txs=d.transactions||[];if(txs.length>0){lines.push('');txs.forEach(tx=>{const parts=[];let txRev=0;tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(l.qty||0):(l.amount||0);parts.push(it.priceMode==='unit'?(it.name||'?')+'×'+l.qty:(it.name||'?'));});lines.push((tx.time||'--:--')+'  '+parts.join(' ')+'  '+fmt(txRev));});}return lines.join('\n');}
+  function copyDay(d,e){e.stopPropagation();const text=buildCopyText(d);const doIt=()=>{setCopied(d.date);setTimeout(()=>setCopied(null),2000)};navigator.clipboard.writeText(text).then(doIt).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);doIt();});}
+  if(loading)return h('div',{className:'pg on'},h('div',{className:'empty'},'載入中…'));
   return h('div',{className:'pg on'},
     h('div',{className:'sec'},'累計統計'),
-    h('div',{className:'hist-summary'},
-      h('div',{className:'hs'},h('div',{className:'hs-l'},'天數'),h('div',{className:'hs-v'},history.length+'天')),
-      h('div',{className:'hs'},h('div',{className:'hs-l'},'總營業額'),h('div',{className:'hs-v'},fmt(totalRev))),
-      h('div',{className:'hs'},h('div',{className:'hs-l'},'總淨利'),h('div',{className:'hs-v '+(totalNet>=0?'g':'')},fmt(totalNet)))
-    ),
+    h('div',{className:'hist-summary'},h('div',{className:'hs'},h('div',{className:'hs-l'},'天數'),h('div',{className:'hs-v'},history.length+'天')),h('div',{className:'hs'},h('div',{className:'hs-l'},'總營業額'),h('div',{className:'hs-v'},fmt(totalRev))),h('div',{className:'hs'},h('div',{className:'hs-l'},'總淨利'),h('div',{className:'hs-v '+(totalNet>=0?'g':'')},fmt(totalNet)))),
     h('div',{className:'sec'},'每日記錄'),
     history.length===0?h('div',{className:'no-hist'},'尚無歷史記錄\n在結算頁按「儲存今日記錄」'):
-    history.map(d=>{
-      const isOpen=open[d.date];
-      return h('div',{key:d.date,className:'hday'+(isOpen?' open':'')},
-        h('div',{className:'hday-hd',onClick:()=>setOpen(o=>({...o,[d.date]:!o[d.date]}))},
-          h('div',{className:'hday-date'},d.date),
-          h('div',{className:'hday-rev'},fmt(d.rev||0)),
-          h('div',{className:'hday-net '+(d.net>=0?'g':'r')},fmt(d.net||0)),
-          h('span',{className:'hday-arrow'},'▼')
-        ),
-        isOpen&&h('div',{className:'hday-body'},
-          h('button',{className:'copy-btn',onClick:e=>copyDay(d,e)},copied===d.date?'✓ 已複製':'📋 複製結算報告'),
-          h('div',{className:'sec',style:{marginBottom:8,marginTop:12}},'交易明細'),
-          (d.transactions||[]).length===0
-            ?h('div',{style:{fontSize:'.76rem',color:'var(--t3)',padding:'4px 0'}},'無記錄')
-            :(d.transactions||[]).map((tx,i)=>{
-              const parts=[];let txRev=0;
-              tx.lines.forEach(l=>{
-                const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;
-                txRev+=it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(l.qty||0):(l.amount||0);
-                parts.push(it.priceMode==='unit'?(it.name||'?')+'×'+l.qty:(it.name||'?'));
-              });
-              return h('div',{key:tx.id||i,className:'hday-txrow'},
-                h('span',{className:'ti'},'#'+(i+1)+' '+parts.join('、')),
-                h('span',{className:'tv'},fmt(txRev))
-              );
-            })
-        )
-      );
-    })
+    history.map(d=>{const isOpen=open[d.date];return h('div',{key:d.date,className:'hday'+(isOpen?' open':'')},h('div',{className:'hday-hd',onClick:()=>setOpen(o=>({...o,[d.date]:!o[d.date]}))},h('div',{className:'hday-date'},d.date),h('div',{className:'hday-rev'},fmt(d.rev||0)),h('div',{className:'hday-net '+(d.net>=0?'g':'r')},fmt(d.net||0)),h('span',{className:'hday-arrow'},'▼')),isOpen&&h('div',{className:'hday-body'},h('button',{className:'copy-btn',onClick:e=>copyDay(d,e)},copied===d.date?'✓ 已複製':'📋 複製結算報告'),h('div',{className:'sec',style:{marginBottom:8,marginTop:12}},'交易明細'),(d.transactions||[]).length===0?h('div',{style:{fontSize:'.76rem',color:'var(--t3)',padding:'4px 0'}},'無記錄'):(d.transactions||[]).map((tx,i)=>{const parts=[];let txRev=0;tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(l.qty||0):(l.amount||0);parts.push(it.priceMode==='unit'?(it.name||'?')+'×'+l.qty:(it.name||'?'));});return h('div',{key:tx.id||i,className:'hday-txrow'},h('span',{className:'ti'},'#'+(i+1)+' '+parts.join('、')),h('span',{className:'tv'},fmt(txRev)));}))));})
   );
 }
-
-// ═══ App Root ═══
 function App(){
-  const defConfig={
-    fixedCosts:[{id:uid(),name:'攤位費',amount:''}],
-    items:[{id:uid(),name:'',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:''}]
-  };
+  const defConfig={fixedCosts:[{id:uid(),name:'攤位費',amount:''}],items:[{id:uid(),name:'',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:''}]};
   const [tab,setTab]=useState(0);
   const [config,setConfigRaw]=useState(defConfig);
   const [transactions,setTxRaw]=useState([]);
   const [syncStatus,setSyncStatus]=useState('ing');
   const saveTimer=useRef(null);
-
-  // 初始載入
-  useEffect(()=>{
-    (async()=>{
-      try{
-        const [cfg,txs]=await Promise.all([fbLoadConfig(),fbLoadTodayTx()]);
-        if(cfg)setConfigRaw(cfg);
-        if(txs.length)setTxRaw(txs);
-        setSyncStatus('ok');
-      }catch(e){console.error(e);setSyncStatus('err')}
-    })();
-  },[]);
-
-  // 即時監聽今日交易
-  useEffect(()=>{
-    const unsub=fbWatchTodayTx(txs=>setTxRaw(txs));
-    return unsub;
-  },[]);
-
-  const setConfig=v=>{
-    const next=typeof v==='function'?v(config):v;
-    setConfigRaw(next);
-    clearTimeout(saveTimer.current);
-    setSyncStatus('ing');
-    saveTimer.current=setTimeout(async()=>{
-      try{await fbSaveConfig(next);setSyncStatus('ok')}
-      catch{setSyncStatus('err')}
-    },1500);
-  };
-
-  const setTransactions=async txs=>{
-    setTxRaw(txs);
-    setSyncStatus('ing');
-    try{await fbSaveTodayTx(txs);setSyncStatus('ok')}
-    catch{setSyncStatus('err')}
-  };
-
+  useEffect(()=>{(async()=>{try{const [cfg,txs]=await Promise.all([fbLoadConfig(),fbLoadTodayTx()]);if(cfg)setConfigRaw(cfg);if(txs.length)setTxRaw(txs);setSyncStatus('ok');}catch(e){console.error(e);setSyncStatus('err')}})();},[]);
+  useEffect(()=>{const unsub=fbWatchTodayTx(txs=>setTxRaw(txs));return unsub;},[]);
+  const setConfig=v=>{const next=typeof v==='function'?v(config):v;setConfigRaw(next);clearTimeout(saveTimer.current);setSyncStatus('ing');saveTimer.current=setTimeout(async()=>{try{await fbSaveConfig(next);setSyncStatus('ok')}catch{setSyncStatus('err')}},1500);};
+  const setTransactions=async txs=>{setTxRaw(txs);setSyncStatus('ing');try{await fbSaveTodayTx(txs);setSyncStatus('ok')}catch{setSyncStatus('err')}};
   const onSave=()=>{setTxRaw([]);fbSaveTodayTx([])};
-
   const tabs=['設定','收銀','結算','歷史'];
   return h('div',null,
-    h('div',{className:'nav'},
-      tabs.map((t,i)=>h('button',{key:i,className:'ntab'+(tab===i?' on':''),onClick:()=>setTab(i)},
-        h('span',{className:'sn'},'0'+(i+1)),t
-      ))
-    ),
+    h('div',{className:'nav'},tabs.map((t,i)=>h('button',{key:i,className:'ntab'+(tab===i?' on':''),onClick:()=>setTab(i)},h('span',{className:'sn'},'0'+(i+1)),t))),
     tab===0&&h(PageSetup,{config,setConfig,goNext:()=>setTab(1),syncStatus}),
     tab===1&&h(PageCashier,{config,transactions,setTransactions,syncStatus}),
     tab===2&&h(PageSettle,{config,transactions,onSave,syncStatus}),
     tab===3&&h(PageHistory,null)
   );
 }
-
 ReactDOM.createRoot(document.getElementById('root')).render(h(App,null));
 </script>
-
-
-</body></html>
+</body>
+</html>
