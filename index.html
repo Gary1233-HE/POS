@@ -93,12 +93,14 @@ input::placeholder{color:var(--t3)}
 .done-btn{width:100%;background:linear-gradient(135deg,var(--pur),var(--acc));color:#fff;border:none;border-radius:12px;height:48px;font-size:.9rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer;margin-bottom:10px}
 .done-btn:active{opacity:.85}
 /* 格狀品項 - 字大4pt */
-.picker{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.picker{display:grid;grid-auto-flow:column;gap:6px}
 .prow{background:var(--s2);border-radius:10px;padding:10px 8px;border:1.5px solid transparent;cursor:pointer;transition:all .15s;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .prow.sel{background:#fff5f7;border-color:var(--acc)}
 .pname{font-size:1.05rem;font-weight:700;line-height:1.3;color:var(--t1)}
 .prow.sel .pname{color:var(--acc)}
 .prow-amt{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--t2);margin-top:3px}
+.prow.sortmode{background:var(--s3);border-style:dashed;border-color:var(--bd2);cursor:grab;padding:10px 6px}
+.prow.sortmode:active{cursor:grabbing}
 /* 交易記錄 */
 .rec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .rec-l{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);font-weight:700}
@@ -118,7 +120,7 @@ input::placeholder{color:var(--t3)}
 .modal-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;overflow-y:auto}
 .modal{background:var(--bg);padding:20px 18px 30px;width:100%;max-width:480px;margin:0 auto;flex:1;display:flex;flex-direction:column;animation:fadeIn .15s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal-name{font-size:1.8rem;font-weight:900;margin-bottom:4px;text-align:center}
+.modal-name{font-size:3.2rem;font-weight:900;margin-bottom:6px;text-align:center;line-height:1.05}
 .modal-meta{font-family:'Space Mono',monospace;font-size:.95rem;color:var(--t3);margin-bottom:18px;text-align:center}
 .modal-meta .gp{color:var(--grn)}
 /* 階梯提示 */
@@ -207,43 +209,53 @@ const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'
 let _uid=Date.now();
 const uid=()=>String(++_uid);
 
-// 筆劃排序
-function strokeSort(items){
-  return [...items].sort((a,b)=>{
-    const na=a.name||'';const nb=b.name||'';
-    return na.localeCompare(nb,['zh-TW'],{sensitivity:'base'});
-  });
-}
-
 // 階梯定價計算
 // tiers: [{qty, price}] 例如 [{qty:1,price:80},{qty:2,price:150}]
 // 超過最大qty時，用最後一個tier的 price/qty 作單價
 function calcTierPrice(tiers,qty){
   if(!tiers||tiers.length===0) return 0;
   const sorted=[...tiers].sort((a,b)=>a.qty-b.qty);
-  // 精確匹配
-  const exact=sorted.find(t=>t.qty===qty);
+  const exact=sorted.find(t=>parseFloat(t.qty)===qty);
   if(exact) return parseFloat(exact.price)||0;
-  // 找最接近但不超過的
-  const below=sorted.filter(t=>t.qty<qty);
+  const below=sorted.filter(t=>parseFloat(t.qty)<qty);
   if(below.length>0){
     const last=below[below.length-1];
-    // 用最後一個tier的單價延伸
-    const unitPrice=(parseFloat(last.price)||0)/(last.qty||1);
+    const unitPrice=(parseFloat(last.price)||0)/(parseFloat(last.qty)||1);
     return Math.round(unitPrice*qty);
   }
-  // qty比所有tier都小，用最小tier
   const first=sorted[0];
-  const unitPrice=(parseFloat(first.price)||0)/(first.qty||1);
+  const unitPrice=(parseFloat(first.price)||0)/(parseFloat(first.qty)||1);
   return Math.round(unitPrice*qty);
 }
 
-// 取得最後tier的單價（用於超過最大qty時的提示）
+// 反推：由金額推算數量（斤數）
+function calcQtyFromAmount(tiers,amount){
+  if(!tiers||tiers.length===0||!amount) return 0;
+  const sorted=[...tiers].sort((a,b)=>parseFloat(a.qty)-parseFloat(b.qty));
+  // 精確匹配某個階梯價格
+  const exact=sorted.find(t=>parseFloat(t.price)===amount);
+  if(exact) return parseFloat(exact.qty)||0;
+  // 找金額落在哪個區間
+  const below=sorted.filter(t=>parseFloat(t.price)<=amount);
+  if(below.length>0){
+    const last=below[below.length-1];
+    const unitPrice=(parseFloat(last.price)||0)/(parseFloat(last.qty)||1);
+    if(unitPrice<=0) return 0;
+    return Math.round((amount/unitPrice)*100)/100; // 保留2位小數
+  }
+  // 金額比最小階梯還小，用最小階梯單價
+  const first=sorted[0];
+  const unitPrice=(parseFloat(first.price)||0)/(parseFloat(first.qty)||1);
+  if(unitPrice<=0) return 0;
+  return Math.round((amount/unitPrice)*100)/100;
+}
+
+// 取得最後tier的單價
 function getBaseUnitPrice(tiers){
   if(!tiers||tiers.length===0) return 0;
-  const sorted=[...tiers].sort((a,b)=>a.qty-b.qty);
+  const sorted=[...tiers].sort((a,b)=>parseFloat(a.qty)-parseFloat(b.qty));
   const last=sorted[sorted.length-1];
-  return (parseFloat(last.price)||0)/(last.qty||1);
+  return (parseFloat(last.price)||0)/(parseFloat(last.qty)||1);
 }
 
 function calcGP(it,revenue,qty){
@@ -290,6 +302,18 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
   const rmItem=id=>setConfig(c=>({...c,items:c.items.filter(it=>it.id!==id)}));
   const loadConfig=d=>{if(window.confirm('載入 '+d.date+' 的品項設定？')){setConfig({fixedCosts:(d.fixedCosts||[]).map(f=>({...f,id:uid()})),items:(d.items||[]).map(it=>({...it,id:uid(),tiers:(it.tiers||[]).map(t=>({...t,id:uid()})),shortcuts:(it.shortcuts||[])}))});}};
 
+  // 上移/下移
+  const moveItem=(id,dir)=>{
+    setConfig(c=>{
+      const arr=[...c.items];
+      const i=arr.findIndex(x=>x.id===id);
+      const j=i+dir;
+      if(i<0||j<0||j>=arr.length)return c;
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+      return{...c,items:arr};
+    });
+  };
+
   // 拖曳
   const onDragStart=(e,id)=>{dragRef.current=id;e.currentTarget.classList.add('dragging');};
   const onDragEnd=e=>{e.currentTarget.classList.remove('dragging');document.querySelectorAll('.icard').forEach(el=>el.classList.remove('drag-over'));};
@@ -324,10 +348,12 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
       )),
       h('button',{className:'add-row-btn',onClick:addFixed},'＋ 新增費用')
     ),
-    h('div',{className:'sec'},'品項設定（可拖曳排序）'),
-    items.map(it=>h('div',{key:it.id,className:'icard',draggable:true,onDragStart:e=>onDragStart(e,it.id),onDragEnd,onDragOver:e=>onDragOver(e,it.id),onDrop:e=>onDrop(e,it.id)},
-      h('div',{className:'icard-top'},
+    h('div',{className:'sec'},'品項設定（↑↓ 或拖曳排序，收銀頁同步）'),
+    items.map((it,idx)=>h('div',{key:it.id,className:'icard',draggable:true,onDragStart:e=>onDragStart(e,it.id),onDragEnd,onDragOver:e=>onDragOver(e,it.id),onDrop:e=>onDrop(e,it.id)},
+      h('div',{className:'icard-top',style:{gridTemplateColumns:'1fr auto auto auto'}},
         h('input',{type:'text',value:it.name,placeholder:'品項名稱',style:{fontFamily:"'Noto Sans TC',sans-serif",fontSize:'.9rem'},onChange:e=>setItem(it.id,'name',e.target.value)}),
+        h('button',{className:'rm-btn',style:{opacity:idx===0?.3:1},disabled:idx===0,onClick:()=>moveItem(it.id,-1)},'↑'),
+        h('button',{className:'rm-btn',style:{opacity:idx===items.length-1?.3:1},disabled:idx===items.length-1,onClick:()=>moveItem(it.id,1)},'↓'),
         h('button',{className:'rm-btn',onClick:()=>rmItem(it.id)},'×')
       ),
       h('div',{className:'icard-fields'},
@@ -344,13 +370,13 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
           ),
           h('input',{type:'number',value:it.profitValue,placeholder:it.profitMode==='cost'&&it.priceMode==='unit'?'0':'0-100',min:0,onChange:e=>setItem(it.id,'profitValue',e.target.value)})
         ),
-        // 件數模式：階梯定價
-        it.priceMode==='unit'&&h('div',null,
-          h('div',{className:'fl'},'售價組合（階梯）'),
+        // 售價組合（階梯）- 兩種模式都支援
+        h('div',null,
+          h('div',{className:'fl'},it.priceMode==='unit'?'售價組合（階梯）':'售價組合（用於反推斤數）'),
           (it.tiers||[]).map(t=>h('div',{key:t.id,className:'tier-row'},
-            h('span',{className:'tier-label'},t.qty?t.qty+'件/斤':'數量'),
+            h('span',{className:'tier-label'},t.qty?t.qty+'斤':'數量'),
             h('div',{style:{display:'grid',gridTemplateColumns:'60px 1fr',gap:5}},
-              h('input',{type:'number',placeholder:'數量',value:t.qty,min:1,inputMode:'numeric',onChange:e=>setTier(it.id,t.id,'qty',e.target.value)}),
+              h('input',{type:'number',placeholder:'斤',value:t.qty,min:0,step:'0.1',inputMode:'decimal',onChange:e=>setTier(it.id,t.id,'qty',e.target.value)}),
               h('input',{type:'number',placeholder:'售價$',value:t.price,min:0,inputMode:'numeric',onChange:e=>setTier(it.id,t.id,'price',e.target.value)})
             ),
             h('button',{className:'rm-btn',onClick:()=>rmTier(it.id,t.id)},'×')
@@ -384,14 +410,15 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
 }
 
 // ═══ PAGE 2 收銀 ═══
-function PageCashier({config,transactions,setTransactions,syncStatus}){
+function PageCashier({config,setConfig,transactions,setTransactions,syncStatus}){
   const {items}=config;
   const [cart,setCart]=useState({});
   const [modal,setModal]=useState(null);
   const [numStr,setNumStr]=useState(''); // 數字鍵盤輸入
+  const [dragMode,setDragMode]=useState(false);
   const pickerRef=useRef(null);
 
-  const sortedItems=strokeSort(items);
+  const sortedItems=items;
   const getCart=id=>cart[id]||{selected:false,qty:1,amount:''};
   const updCart=(id,p)=>setCart(c=>({...c,[id]:{...getCart(id),...p}}));
 
@@ -443,15 +470,17 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
 
   // 計算當前modal的毛利預覽
   const modalRevGP=()=>{
-    if(!modal)return{rev:0,gp:0};
+    if(!modal)return{rev:0,gp:0,qty:0};
     const itU={...modal,profitValue:parseFloat(modal.profitValue)||0};
     const val=parseFloat(numStr)||0;
     if(modal.priceMode==='unit'){
       const qty=Math.max(1,Math.round(val)||1);
       const rev=(modal.tiers&&modal.tiers.length>0)?calcTierPrice(modal.tiers,qty):(parseFloat(modal.unitPrice)||0)*qty;
-      return{rev,gp:calcGP(itU,rev,qty)};
+      return{rev,gp:calcGP(itU,rev,qty),qty};
     }
-    return{rev:val,gp:calcGP(itU,val,0)};
+    // 金額模式：反推斤數
+    const qty=(modal.tiers&&modal.tiers.length>0)?calcQtyFromAmount(modal.tiers,val):0;
+    return{rev:val,gp:calcGP(itU,val,qty),qty};
   };
 
   const commit=()=>{
@@ -464,7 +493,8 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
         lines.push({itemId:it.id,qty,amount:null,revenue:rev});
       } else {
         const rev=parseFloat(st.amount)||0;
-        lines.push({itemId:it.id,qty:null,amount:rev,revenue:rev});
+        const qty=(it.tiers&&it.tiers.length>0)?calcQtyFromAmount(it.tiers,rev):0;
+        lines.push({itemId:it.id,qty,amount:rev,revenue:rev});
       }
     });
     if(!lines.length){alert('請先選擇品項');return;}
@@ -474,6 +504,43 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
 
   const delTx=id=>setTransactions(transactions.filter(t=>t.id!==id));
   const {rev,gp}=totals();
+
+  // 拖曳排序（插入式）
+  const dragId=useRef(null);
+  const onDragStart=(e,id)=>{
+    dragId.current=id;
+    e.dataTransfer.effectAllowed='move';
+    e.currentTarget.style.opacity='0.3';
+  };
+  const onDragEnd=e=>{
+    e.currentTarget.style.opacity='';
+    document.querySelectorAll('.prow').forEach(el=>{el.style.borderColor='';el.style.borderStyle='';});
+    dragId.current=null;
+  };
+  const onDragOver=(e,id)=>{
+    e.preventDefault();
+    e.dataTransfer.dropEffect='move';
+    if(dragId.current===id)return;
+    document.querySelectorAll('.prow').forEach(el=>{el.style.borderColor='';el.style.borderStyle='';});
+    e.currentTarget.style.borderColor='var(--acc)';
+    e.currentTarget.style.borderStyle='solid';
+  };
+  const onDrop=(e,targetId)=>{
+    e.preventDefault();
+    document.querySelectorAll('.prow').forEach(el=>{el.style.borderColor='';el.style.borderStyle='';});
+    const fromId=dragId.current;
+    if(!fromId||fromId===targetId)return;
+    setConfig(c=>{
+      const arr=[...c.items];
+      const fi=arr.findIndex(x=>x.id===fromId);
+      const ti=arr.findIndex(x=>x.id===targetId);
+      if(fi<0||ti<0)return c;
+      const [moved]=arr.splice(fi,1);   // 抽出
+      arr.splice(ti,0,moved);           // 插入目標位置，其餘往後推
+      return{...c,items:arr};
+    });
+    dragId.current=null;
+  };
 
   const txLine=(tx,i)=>{
     let txRev=0,txGp=0;const parts=[];
@@ -495,7 +562,7 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
     );
   };
 
-  const {rev:mRev,gp:mGP}=modalRevGP();
+  const {rev:mRev,gp:mGP,qty:mQty}=modalRevGP();
 
   return h('div',{className:'pg on'},
     h(SyncBar,{status:syncStatus}),
@@ -504,10 +571,23 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
       h('div',{className:'db'},h('div',{className:'db-l'},'今日毛利'),h('div',{className:'db-v '+(gp>=0?'g':'r')},fmt(gp)))
     ),
     h('div',{className:'tx-box'},
-      h('div',{className:'tx-hd'},h('span',{className:'tx-hd-l'},'新增交易'),h('span',{className:'tx-sub'},'小計 '+fmt(subtotal))),
+      h('div',{className:'tx-hd'},
+        h('span',{className:'tx-hd-l'},'新增交易'),
+        h('div',{style:{display:'flex',alignItems:'center',gap:10}},
+          h('button',{
+            onClick:()=>setDragMode(d=>!d),
+            style:{background:dragMode?'var(--acc)':'var(--s2)',border:'1.5px solid '+(dragMode?'var(--acc)':'var(--bd)'),color:dragMode?'#fff':'var(--t3)',borderRadius:8,padding:'4px 10px',fontSize:'.7rem',fontWeight:700,fontFamily:"'Noto Sans TC',sans-serif",cursor:'pointer'}
+          },dragMode?'✓ 排序中':'⇅ 排序'),
+          h('span',{className:'tx-sub'},'小計 '+fmt(subtotal))
+        )
+      ),
       h('button',{className:'done-btn',onClick:commit},'✓  完成交易'),
-      h('div',{className:'picker',ref:pickerRef},
-        sortedItems.map(it=>{
+      h('div',{
+        className:'picker',
+        ref:pickerRef,
+        style:{gridTemplateRows:'repeat('+Math.ceil(sortedItems.length/3)+',auto)'}
+      },
+        sortedItems.map((it,idx)=>{
           const st=getCart(it.id);
           let dispAmt='';
           if(st.selected){
@@ -518,6 +598,20 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
             } else {
               dispAmt=fmt(parseFloat(st.amount)||0);
             }
+          }
+          if(dragMode){
+            return h('div',{
+              key:it.id,
+              className:'prow sortmode',
+              draggable:true,
+              onDragStart:e=>onDragStart(e,it.id),
+              onDragEnd:onDragEnd,
+              onDragOver:e=>onDragOver(e,it.id),
+              onDrop:e=>onDrop(e,it.id)
+            },
+              h('div',{style:{fontSize:'1rem',color:'var(--t3)',marginBottom:4}},'⣿'),
+              h('div',{className:'pname',style:{fontSize:'.9rem'}},it.name||'未命名')
+            );
           }
           return h('div',{key:it.id,className:'prow'+(st.selected?' sel':''),onClick:()=>openModal(it)},
             h('div',{className:'pname'},it.name||'未命名'),
@@ -541,16 +635,17 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
           h('span',{className:'gp'},modal.profitMode==='margin'?'毛利率 '+(modal.profitValue||0)+'%':'成本 $'+(modal.profitValue||0))
         ),
 
-        // 件數模式：顯示階梯 chips
-        modal.priceMode==='unit'&&modal.tiers&&modal.tiers.length>0&&h('div',{className:'tier-hint'},
-          [...modal.tiers].sort((a,b)=>a.qty-b.qty).map(t=>{
-            const qty=Math.round(parseFloat(numStr)||1);
-            const isActive=parseInt(t.qty)===qty;
+        // 階梯 chips（兩種模式都顯示）
+        modal.tiers&&modal.tiers.length>0&&h('div',{className:'tier-hint'},
+          [...modal.tiers].sort((a,b)=>parseFloat(a.qty)-parseFloat(b.qty)).map(t=>{
+            const isActive=modal.priceMode==='unit'
+              ?parseFloat(t.qty)===Math.round(parseFloat(numStr)||1)
+              :parseFloat(t.price)===parseFloat(numStr);
             return h('div',{
               key:t.id,
               className:'tier-chip'+(isActive?' active':''),
-              onClick:()=>setNumStr(String(t.qty))
-            },(t.qty||'?')+'件 $'+(t.price||0));
+              onClick:()=>setNumStr(modal.priceMode==='unit'?String(t.qty):String(t.price))
+            },(t.qty||'?')+'斤 $'+(t.price||0));
           })
         ),
 
@@ -566,7 +661,13 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
         ),
 
         // 毛利預覽
-        h('div',{className:'modal-gp'},numStr?fmt(mRev)+'　毛利 '+fmt(mGP):''),
+        h('div',{className:'modal-gp'},
+          numStr
+            ?(modal.priceMode==='amount'&&mQty>0
+                ?'約 '+mQty+' 斤　毛利 '+fmt(mGP)
+                :fmt(mRev)+'　毛利 '+fmt(mGP))
+            :''
+        ),
 
         // 數字鍵盤
         h('div',{className:'numpad'},
@@ -796,7 +897,7 @@ function App(){
   return h('div',null,
     h('div',{className:'nav'},tabs.map((t,i)=>h('button',{key:i,className:'ntab'+(tab===i?' on':''),onClick:()=>setTab(i)},h('span',{className:'sn'},'0'+(i+1)),t))),
     tab===0&&h(PageSetup,{config,setConfig,goNext:()=>setTab(1),syncStatus}),
-    tab===1&&h(PageCashier,{config,transactions,setTransactions,syncStatus}),
+    tab===1&&h(PageCashier,{config,setConfig,transactions,setTransactions,syncStatus}),
     tab===2&&h(PageSettle,{config,transactions,onSave,syncStatus}),
     h(PageHistory,{active:tab===3,histKey})
   );
