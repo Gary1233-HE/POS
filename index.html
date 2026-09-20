@@ -51,11 +51,25 @@ input::placeholder{color:var(--t3)}
 .frow{display:grid;grid-template-columns:1fr 86px 30px;gap:6px;margin-bottom:7px;align-items:center}
 .add-row-btn{width:100%;background:none;border:1.5px dashed var(--bd2);color:var(--t3);height:33px;border-radius:9px;cursor:pointer;font-size:.73rem;font-family:'Noto Sans TC',sans-serif;font-weight:700}
 .add-row-btn:active{border-color:var(--acc);color:var(--acc)}
-.icard{background:var(--s1);border-radius:14px;padding:13px;margin-bottom:8px;border:1.5px solid var(--bd)}
+.icard{background:var(--s1);border-radius:14px;padding:13px;margin-bottom:8px;border:1.5px solid var(--bd);cursor:grab}
+.icard.dragging{opacity:.4}
+.icard.drag-over{border-color:var(--acc)}
 .icard-top{display:grid;grid-template-columns:1fr 30px;gap:7px;align-items:center;margin-bottom:9px}
 .icard-top input{font-family:'Noto Sans TC',sans-serif;font-size:.9rem;font-weight:700}
 .icard-fields{display:flex;flex-direction:column;gap:8px}
 .fl{font-size:.57rem;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:3px;display:flex;align-items:center;justify-content:space-between;min-height:17px;font-weight:700}
+/* 階梯定價 */
+.tier-row{display:grid;grid-template-columns:80px 1fr 30px;gap:6px;align-items:center;margin-bottom:6px}
+.tier-label{font-size:.65rem;color:var(--t3);font-family:'Space Mono',monospace;text-align:right;white-space:nowrap}
+.add-tier-btn{background:none;border:1px dashed var(--bd2);color:var(--t3);height:30px;border-radius:7px;cursor:pointer;font-size:.7rem;font-family:'Noto Sans TC',sans-serif;width:100%;margin-top:2px}
+.add-tier-btn:active{border-color:var(--grn);color:var(--grn)}
+/* 快捷金額 */
+.shortcut-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.sc-amt-tag{display:flex;align-items:center;gap:4px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:3px 8px;font-family:'Space Mono',monospace;font-size:.75rem}
+.sc-amt-tag button{background:none;border:none;color:var(--t3);cursor:pointer;font-size:.8rem;padding:0;line-height:1}
+.sc-amt-tag button:active{color:var(--red)}
+.add-sc-btn{background:none;border:1px dashed var(--bd2);color:var(--t3);height:28px;border-radius:6px;cursor:pointer;font-size:.7rem;font-family:'Noto Sans TC',sans-serif;padding:0 10px}
+.add-sc-btn:active{border-color:var(--grn);color:var(--grn)}
 .add-item-btn{width:100%;background:var(--s1);border:1.5px dashed var(--bd2);color:var(--t2);height:44px;border-radius:12px;cursor:pointer;font-size:.85rem;font-family:'Noto Sans TC',sans-serif;margin-bottom:11px;font-weight:700}
 .add-item-btn:active{color:var(--acc)}
 .saved-configs{background:var(--s1);border-radius:14px;overflow:hidden;margin-bottom:14px;border:1.5px solid var(--bd)}
@@ -78,17 +92,13 @@ input::placeholder{color:var(--t3)}
 .tx-sub{font-family:'Space Mono',monospace;font-size:.82rem;color:var(--t2)}
 .done-btn{width:100%;background:linear-gradient(135deg,var(--pur),var(--acc));color:#fff;border:none;border-radius:12px;height:48px;font-size:.9rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer;margin-bottom:10px}
 .done-btn:active{opacity:.85}
-/* picker grid */
+/* 格狀品項 - 字大4pt */
 .picker{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-.prow{background:var(--s2);border-radius:10px;padding:10px 8px;border:1.5px solid transparent;cursor:pointer;transition:all .15s;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.prow{background:var(--s2);border-radius:10px;padding:10px 8px;border:1.5px solid transparent;cursor:pointer;transition:all .15s;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .prow.sel{background:#fff5f7;border-color:var(--acc)}
-.pname{font-size:.88rem;font-weight:700;line-height:1.3;color:var(--t1)}
+.pname{font-size:1.05rem;font-weight:700;line-height:1.3;color:var(--t1)}
 .prow.sel .pname{color:var(--acc)}
 .prow-amt{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--t2);margin-top:3px}
-/* drag item card in setup */
-.icard{background:var(--s1);border-radius:14px;padding:13px;margin-bottom:8px;border:1.5px solid var(--bd);cursor:grab}
-.icard.dragging{opacity:.4;cursor:grabbing}
-.icard.drag-over{border-color:var(--acc);background:var(--acc-d)}
 /* 交易記錄 */
 .rec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .rec-l{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);font-weight:700}
@@ -106,17 +116,32 @@ input::placeholder{color:var(--t3)}
 .empty{background:var(--s1);border:1.5px dashed var(--bd2);border-radius:12px;padding:28px 16px;text-align:center;color:var(--t3);font-size:.82rem}
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:flex-end;justify-content:center}
-.modal{background:var(--s1);border-radius:20px 20px 0 0;padding:24px 20px 44px;width:100%;max-width:480px;animation:slideUp .2s ease}
+.modal{background:var(--s1);border-radius:20px 20px 0 0;padding:20px 18px 36px;width:100%;max-width:480px;animation:slideUp .2s ease}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.modal-name{font-size:1.15rem;font-weight:900;margin-bottom:4px}
-.modal-meta{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--t3);margin-bottom:20px}
+.modal-name{font-size:1.15rem;font-weight:900;margin-bottom:2px}
+.modal-meta{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--t3);margin-bottom:14px}
 .modal-meta .gp{color:var(--grn)}
-.modal-label{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;font-weight:700}
-.modal-input-wrap{position:relative;margin-bottom:6px}
-.modal-input-wrap input{height:54px;font-size:1.3rem;border-radius:12px;padding:0 14px}
-.modal-input-wrap input.has-prefix{padding-left:28px}
-.modal-input-wrap .ds{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:1rem;color:var(--t3);font-family:'Space Mono',monospace;pointer-events:none}
-.modal-gp{font-family:'Space Mono',monospace;font-size:.82rem;color:var(--grn);text-align:right;margin-bottom:18px;min-height:20px}
+/* 階梯提示 */
+.tier-hint{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.tier-chip{background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;padding:5px 10px;font-family:'Space Mono',monospace;font-size:.75rem;cursor:pointer;transition:all .15s;color:var(--t2)}
+.tier-chip:active,.tier-chip.active{background:var(--acc);border-color:var(--acc);color:#fff}
+/* 快捷金額 chips */
+.shortcut-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.sc-chip{background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;padding:5px 12px;font-family:'Space Mono',monospace;font-size:.78rem;cursor:pointer;color:var(--t2)}
+.sc-chip:active{background:var(--acc);border-color:var(--acc);color:#fff}
+/* 數字鍵盤 */
+.numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px}
+.np-btn{background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;height:52px;font-size:1.2rem;font-weight:700;font-family:'Space Mono',monospace;cursor:pointer;color:var(--t1);transition:all .1s}
+.np-btn:active{background:var(--bd);transform:scale(.96)}
+.np-btn.zero{grid-column:span 1}
+.np-btn.dbl{font-size:1rem}
+.np-btn.del{background:var(--s3);color:var(--t2)}
+/* 顯示數值 */
+.modal-display{background:var(--s2);border-radius:12px;padding:10px 14px;text-align:right;margin-bottom:10px;min-height:52px;display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.modal-display .prefix{font-family:'Space Mono',monospace;font-size:1rem;color:var(--t3)}
+.modal-display .val{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--t1)}
+.modal-display .val.empty-val{color:var(--t3)}
+.modal-gp{font-family:'Space Mono',monospace;font-size:.82rem;color:var(--grn);text-align:right;margin-bottom:12px;min-height:20px}
 .modal-btns{display:grid;grid-template-columns:1fr 2fr;gap:10px}
 .modal-cancel{background:none;border:1.5px solid var(--bd);color:var(--t2);border-radius:12px;height:52px;font-size:.92rem;font-family:'Noto Sans TC',sans-serif;cursor:pointer;font-weight:700}
 .modal-confirm{background:linear-gradient(135deg,var(--acc),var(--ora));color:#fff;border:none;border-radius:12px;height:52px;font-size:.92rem;font-family:'Noto Sans TC',sans-serif;cursor:pointer;font-weight:900}
@@ -161,7 +186,7 @@ input::placeholder{color:var(--t3)}
 .hday-txrow .ti{color:var(--t2);flex:1}
 .hday-txrow .tv{font-family:'Space Mono',monospace;font-weight:700}
 .no-hist{background:var(--s1);border:1.5px dashed var(--bd2);border-radius:12px;padding:30px;text-align:center;color:var(--t3);font-size:.8rem}
-.copy-btn{width:100%;background:rgba(124,92,252,.1);border:1.5px solid rgba(124,92,252,.25);color:var(--pur);border-radius:10px;height:38px;font-size:.78rem;font-weight:700;font-family:'Noto Sans TC',sans-serif;cursor:pointer}
+.copy-btn{background:rgba(124,92,252,.1);border:1.5px solid rgba(124,92,252,.25);color:var(--pur);border-radius:10px;height:38px;font-size:.78rem;font-weight:700;font-family:'Noto Sans TC',sans-serif;cursor:pointer;flex:1}
 .copy-btn:active{background:var(--pur);color:#fff}
 .sync-bar{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 12px 8px;font-size:.65rem;color:var(--t3)}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex-shrink:0}
@@ -174,7 +199,7 @@ input::placeholder{color:var(--t3)}
 <body>
 <div id="root"></div>
 <script>
-const {useState,useEffect,useCallback,useRef}=React;
+const {useState,useEffect,useRef}=React;
 const h=React.createElement;
 const db=window._db;
 const fmt=n=>(n<0?'-$':'$')+Math.abs(n).toLocaleString('zh-TW',{maximumFractionDigits:0});
@@ -183,18 +208,49 @@ const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'
 let _uid=Date.now();
 const uid=()=>String(++_uid);
 
+// 筆劃排序
+function strokeSort(items){
+  return [...items].sort((a,b)=>{
+    const na=a.name||'';const nb=b.name||'';
+    return na.localeCompare(nb,['zh-TW'],{sensitivity:'base'});
+  });
+}
+
+// 階梯定價計算
+// tiers: [{qty, price}] 例如 [{qty:1,price:80},{qty:2,price:150}]
+// 超過最大qty時，用最後一個tier的 price/qty 作單價
+function calcTierPrice(tiers,qty){
+  if(!tiers||tiers.length===0) return 0;
+  const sorted=[...tiers].sort((a,b)=>a.qty-b.qty);
+  // 精確匹配
+  const exact=sorted.find(t=>t.qty===qty);
+  if(exact) return parseFloat(exact.price)||0;
+  // 找最接近但不超過的
+  const below=sorted.filter(t=>t.qty<qty);
+  if(below.length>0){
+    const last=below[below.length-1];
+    // 用最後一個tier的單價延伸
+    const unitPrice=(parseFloat(last.price)||0)/(last.qty||1);
+    return Math.round(unitPrice*qty);
+  }
+  // qty比所有tier都小，用最小tier
+  const first=sorted[0];
+  const unitPrice=(parseFloat(first.price)||0)/(first.qty||1);
+  return Math.round(unitPrice*qty);
+}
+
+// 取得最後tier的單價（用於超過最大qty時的提示）
+function getBaseUnitPrice(tiers){
+  if(!tiers||tiers.length===0) return 0;
+  const sorted=[...tiers].sort((a,b)=>a.qty-b.qty);
+  const last=sorted[sorted.length-1];
+  return (parseFloat(last.price)||0)/(last.qty||1);
+}
+
 function calcGP(it,revenue,qty){
   if(it.profitMode==='margin') return revenue*(it.profitValue/100);
   if(it.priceMode==='unit') return revenue-it.profitValue*(qty||0);
   return revenue*(1-it.profitValue/100);
-}
-function itemMeta(it){
-  if(it.priceMode==='unit'){
-    const gp=it.profitMode==='margin'?(it.unitPrice*it.profitValue/100):(it.unitPrice-it.profitValue);
-    return {price:'$'+it.unitPrice+'/件',gpStr:'毛利 $'+Math.round(gp)};
-  }
-  const pct=it.profitMode==='margin'?it.profitValue:(100-it.profitValue);
-  return {price:'售出金額',gpStr:'毛利率 '+pct+'%'};
 }
 
 async function fbSaveConfig(cfg){await db.collection('config').doc('current').set(cfg);}
@@ -203,10 +259,8 @@ async function fbSaveTodayTx(txs){await db.collection('days').doc(todayStr()).se
 async function fbLoadTodayTx(){const s=await db.collection('days').doc(todayStr()).get();return s.exists?(s.data().transactions||[]):[];}
 async function fbSaveHistory(entry){await db.collection('history').doc(entry.date).set(entry);}
 async function fbLoadHistory(){
-  try{
-    const s=await db.collection('history').get();
-    return s.docs.map(d=>({...d.data(),_docId:d.id})).sort((a,b)=>(b.date||b._docId||'').localeCompare(a.date||a._docId||''));
-  }catch(e){console.error(e);return[];}
+  try{const s=await db.collection('history').get();return s.docs.map(d=>({...d.data(),_docId:d.id})).sort((a,b)=>(b.date||b._docId||'').localeCompare(a.date||a._docId||''));}
+  catch(e){console.error(e);return[];}
 }
 function fbWatchTodayTx(cb){return db.collection('days').doc(todayStr()).onSnapshot(s=>{if(s.exists)cb(s.data().transactions||[]);});}
 
@@ -219,40 +273,46 @@ function SyncBar({status}){
   return h('div',{className:'sync-bar'},h('div',{className:'sync-dot '+status}),h('span',null,map[status]||''));
 }
 
-// PAGE 1 設定
+// ═══ PAGE 1 設定 ═══
 function PageSetup({config,setConfig,goNext,syncStatus}){
   const {fixedCosts,items}=config;
   const [pastConfigs,setPastConfigs]=useState([]);
   const dragRef=useRef(null);
   useEffect(()=>{fbLoadHistory().then(h=>setPastConfigs(h.slice(0,5)));},[]);
+
   const setFixed=(id,f,v)=>setConfig(c=>({...c,fixedCosts:c.fixedCosts.map(r=>r.id===id?{...r,[f]:v}:r)}));
   const addFixed=()=>setConfig(c=>({...c,fixedCosts:[...c.fixedCosts,{id:uid(),name:'',amount:''}]}));
   const rmFixed=id=>setConfig(c=>({...c,fixedCosts:c.fixedCosts.filter(r=>r.id!==id)}));
+
   const setItem=(id,f,v)=>setConfig(c=>({...c,items:c.items.map(it=>it.id===id?{...it,[f]:v}:it)}));
   const setPM=(id,m)=>setConfig(c=>({...c,items:c.items.map(it=>it.id===id?{...it,priceMode:m}:it)}));
   const setProM=(id,m)=>setConfig(c=>({...c,items:c.items.map(it=>it.id===id?{...it,profitMode:m}:it)}));
-  const addItem=()=>setConfig(c=>({...c,items:[...c.items,{id:uid(),name:'',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:''}]}));
+  const addItem=()=>setConfig(c=>({...c,items:[...c.items,{id:uid(),name:'',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:'',tiers:[],shortcuts:[]}]}));
   const rmItem=id=>setConfig(c=>({...c,items:c.items.filter(it=>it.id!==id)}));
-  const loadConfig=d=>{if(window.confirm('載入 '+d.date+' 的品項設定？')){setConfig({fixedCosts:(d.fixedCosts||[]).map(f=>({...f,id:uid()})),items:(d.items||[]).map(it=>({...it,id:uid()}))});}};
+  const loadConfig=d=>{if(window.confirm('載入 '+d.date+' 的品項設定？')){setConfig({fixedCosts:(d.fixedCosts||[]).map(f=>({...f,id:uid()})),items:(d.items||[]).map(it=>({...it,id:uid(),tiers:(it.tiers||[]).map(t=>({...t,id:uid()})),shortcuts:(it.shortcuts||[])}))});}};
 
+  // 拖曳
   const onDragStart=(e,id)=>{dragRef.current=id;e.currentTarget.classList.add('dragging');};
-  const onDragEnd=(e)=>{e.currentTarget.classList.remove('dragging');document.querySelectorAll('.icard').forEach(el=>el.classList.remove('drag-over'));};
+  const onDragEnd=e=>{e.currentTarget.classList.remove('dragging');document.querySelectorAll('.icard').forEach(el=>el.classList.remove('drag-over'));};
   const onDragOver=(e,id)=>{e.preventDefault();if(dragRef.current===id)return;document.querySelectorAll('.icard').forEach(el=>el.classList.remove('drag-over'));e.currentTarget.classList.add('drag-over');};
   const onDrop=(e,targetId)=>{
-    e.preventDefault();
-    e.currentTarget.classList.remove('drag-over');
+    e.preventDefault();e.currentTarget.classList.remove('drag-over');
     const fromId=dragRef.current;if(!fromId||fromId===targetId)return;
-    setConfig(c=>{
-      const arr=[...c.items];
-      const fi=arr.findIndex(i=>i.id===fromId);
-      const ti=arr.findIndex(i=>i.id===targetId);
-      if(fi<0||ti<0)return c;
-      const [moved]=arr.splice(fi,1);
-      arr.splice(ti,0,moved);
-      return{...c,items:arr};
-    });
+    setConfig(c=>{const arr=[...c.items];const fi=arr.findIndex(i=>i.id===fromId);const ti=arr.findIndex(i=>i.id===targetId);if(fi<0||ti<0)return c;const[moved]=arr.splice(fi,1);arr.splice(ti,0,moved);return{...c,items:arr};});
     dragRef.current=null;
   };
+
+  // 階梯定價
+  const addTier=id=>setConfig(c=>({...c,items:c.items.map(it=>it.id===id?{...it,tiers:[...(it.tiers||[]),{id:uid(),qty:'',price:''}]}:it)}));
+  const setTier=(itemId,tierId,f,v)=>setConfig(c=>({...c,items:c.items.map(it=>it.id===itemId?{...it,tiers:it.tiers.map(t=>t.id===tierId?{...t,[f]:v}:t)}:it)}));
+  const rmTier=(itemId,tierId)=>setConfig(c=>({...c,items:c.items.map(it=>it.id===itemId?{...it,tiers:it.tiers.filter(t=>t.id!==tierId)}:it)}));
+
+  // 快捷金額
+  const addShortcut=(id,val)=>{
+    const v=parseFloat(val);if(!v)return;
+    setConfig(c=>({...c,items:c.items.map(it=>it.id===id?{...it,shortcuts:[...(it.shortcuts||[]),v].sort((a,b)=>a-b)}:it)}));
+  };
+  const rmShortcut=(itemId,val)=>setConfig(c=>({...c,items:c.items.map(it=>it.id===itemId?{...it,shortcuts:(it.shortcuts||[]).filter(s=>s!==val)}:it)}));
 
   return h('div',{className:'pg on'},
     h(SyncBar,{status:syncStatus}),
@@ -266,33 +326,48 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
       h('button',{className:'add-row-btn',onClick:addFixed},'＋ 新增費用')
     ),
     h('div',{className:'sec'},'品項設定（可拖曳排序）'),
-    items.map(it=>h('div',{
-      key:it.id,className:'icard',
-      draggable:true,
-      onDragStart:e=>onDragStart(e,it.id),
-      onDragEnd:onDragEnd,
-      onDragOver:e=>onDragOver(e,it.id),
-      onDrop:e=>onDrop(e,it.id),
-    },
+    items.map(it=>h('div',{key:it.id,className:'icard',draggable:true,onDragStart:e=>onDragStart(e,it.id),onDragEnd,onDragOver:e=>onDragOver(e,it.id),onDrop:e=>onDrop(e,it.id)},
       h('div',{className:'icard-top'},
         h('input',{type:'text',value:it.name,placeholder:'品項名稱',style:{fontFamily:"'Noto Sans TC',sans-serif",fontSize:'.9rem'},onChange:e=>setItem(it.id,'name',e.target.value)}),
         h('button',{className:'rm-btn',onClick:()=>rmItem(it.id)},'×')
       ),
       h('div',{className:'icard-fields'},
+        // 計量方式
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
           h('div',{className:'fl',style:{marginBottom:0}},'計量方式'),
-          h(PillToggle,{options:[{v:'unit',l:'件數'},{v:'amount',l:'售出金額'}],value:it.priceMode,onChange:m=>setPM(it.id,m)})
+          h(PillToggle,{options:[{v:'unit',l:'件數/斤'},{v:'amount',l:'售出金額'}],value:it.priceMode,onChange:m=>setPM(it.id,m)})
         ),
-        it.priceMode==='unit'&&h('div',null,
-          h('div',{className:'fl'},'單件售價 $'),
-          h('input',{type:'number',value:it.unitPrice,placeholder:'0',min:0,onChange:e=>setItem(it.id,'unitPrice',e.target.value)})
-        ),
+        // 利潤
         h('div',null,
           h('div',{className:'fl'},
             h('span',null,it.profitMode==='margin'?'毛利率 %':(it.priceMode==='unit'?'單件成本 $':'成本佔比 %')),
             h(PillToggle,{options:[{v:'cost',l:it.priceMode==='unit'?'成本$':'成本%'},{v:'margin',l:'毛利%'}],value:it.profitMode,onChange:m=>setProM(it.id,m)})
           ),
           h('input',{type:'number',value:it.profitValue,placeholder:it.profitMode==='cost'&&it.priceMode==='unit'?'0':'0-100',min:0,onChange:e=>setItem(it.id,'profitValue',e.target.value)})
+        ),
+        // 件數模式：階梯定價
+        it.priceMode==='unit'&&h('div',null,
+          h('div',{className:'fl'},'售價組合（階梯）'),
+          (it.tiers||[]).map(t=>h('div',{key:t.id,className:'tier-row'},
+            h('span',{className:'tier-label'},t.qty?t.qty+'件/斤':'數量'),
+            h('div',{style:{display:'grid',gridTemplateColumns:'60px 1fr',gap:5}},
+              h('input',{type:'number',placeholder:'數量',value:t.qty,min:1,inputMode:'numeric',onChange:e=>setTier(it.id,t.id,'qty',e.target.value)}),
+              h('input',{type:'number',placeholder:'售價$',value:t.price,min:0,inputMode:'numeric',onChange:e=>setTier(it.id,t.id,'price',e.target.value)})
+            ),
+            h('button',{className:'rm-btn',onClick:()=>rmTier(it.id,t.id)},'×')
+          )),
+          h('button',{className:'add-tier-btn',onClick:()=>addTier(it.id)},'＋ 新增售價組合')
+        ),
+        // 金額模式：快捷金額
+        it.priceMode==='amount'&&h('div',null,
+          h('div',{className:'fl'},'快捷金額'),
+          h('div',{className:'shortcut-row'},
+            (it.shortcuts||[]).map(s=>h('div',{key:s,className:'sc-amt-tag'},
+              h('span',null,'$'+s),
+              h('button',{onClick:()=>rmShortcut(it.id,s)},'×')
+            )),
+            h('button',{className:'add-sc-btn',onClick:()=>{const v=window.prompt('新增快捷金額');if(v)addShortcut(it.id,v);}},'＋')
+          )
         )
       )
     )),
@@ -309,13 +384,15 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
   );
 }
 
-// PAGE 2 收銀
+// ═══ PAGE 2 收銀 ═══
 function PageCashier({config,transactions,setTransactions,syncStatus}){
   const {items}=config;
   const [cart,setCart]=useState({});
   const [modal,setModal]=useState(null);
-  const [modalVal,setModalVal]=useState('');
+  const [numStr,setNumStr]=useState(''); // 數字鍵盤輸入
+  const pickerRef=useRef(null);
 
+  const sortedItems=strokeSort(items);
   const getCart=id=>cart[id]||{selected:false,qty:1,amount:''};
   const updCart=(id,p)=>setCart(c=>({...c,[id]:{...getCart(id),...p}}));
 
@@ -323,55 +400,74 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
     let rev=0,gp=0;
     transactions.forEach(tx=>tx.lines.forEach(l=>{
       const it=items.find(i=>i.id===l.itemId);if(!it)return;
-      const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};
-      const r=itU.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);
-      rev+=r;gp+=calcGP(itU,r,l.qty||0);
+      const itU={...it,profitValue:parseFloat(it.profitValue)||0};
+      rev+=l.revenue||0;gp+=calcGP(itU,l.revenue||0,l.qty||0);
     }));
     return{rev,gp};
   };
-
   const subtotal=items.reduce((s,it)=>{
     const st=getCart(it.id);if(!st.selected)return s;
-    return s+(it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(st.qty||1):(parseFloat(st.amount)||0));
+    if(it.priceMode==='unit'){
+      const qty=st.qty||1;
+      const rev=(it.tiers&&it.tiers.length>0)?calcTierPrice(it.tiers,qty):(parseFloat(it.unitPrice)||0)*qty;
+      return s+rev;
+    }
+    return s+(parseFloat(st.amount)||0);
   },0);
+
+  // 數字鍵盤
+  const numPad=(key)=>{
+    if(key==='del'){setNumStr(s=>s.slice(0,-1));return;}
+    if(key==='00'){setNumStr(s=>(s==='0'||s==='')?s:s+'00');return;}
+    if(numStr==='0'&&key!=='.'){setNumStr(key);return;}
+    setNumStr(s=>s+key);
+  };
 
   const openModal=it=>{
     const st=getCart(it.id);
     setModal(it);
-    setModalVal(it.priceMode==='unit'?String(st.qty||1):String(st.amount||''));
+    setNumStr(it.priceMode==='unit'?String(st.qty||1):String(st.amount||''));
   };
-  const closeModal=()=>{setModal(null);setModalVal('');};
-  const pickerRef=useRef(null);
+  const closeModal=()=>{setModal(null);setNumStr('');};
+
   const confirmModal=()=>{
     if(!modal)return;
+    const val=parseFloat(numStr)||0;
     if(modal.priceMode==='unit'){
-      updCart(modal.id,{selected:true,qty:Math.max(1,parseInt(modalVal)||1)});
+      const qty=Math.max(1,Math.round(val)||1);
+      updCart(modal.id,{selected:true,qty});
     } else {
-      updCart(modal.id,{selected:true,amount:modalVal});
+      updCart(modal.id,{selected:true,amount:String(val)});
     }
     closeModal();
-    setTimeout(()=>{
-      if(pickerRef.current) pickerRef.current.scrollIntoView({behavior:'smooth',block:'nearest'});
-    },100);
+    setTimeout(()=>{if(pickerRef.current)pickerRef.current.scrollIntoView({behavior:'smooth',block:'nearest'});},80);
   };
 
-  const modalGP=()=>{
-    if(!modal)return 0;
-    const itU={...modal,unitPrice:parseFloat(modal.unitPrice)||0,profitValue:parseFloat(modal.profitValue)||0};
+  // 計算當前modal的毛利預覽
+  const modalRevGP=()=>{
+    if(!modal)return{rev:0,gp:0};
+    const itU={...modal,profitValue:parseFloat(modal.profitValue)||0};
+    const val=parseFloat(numStr)||0;
     if(modal.priceMode==='unit'){
-      const qty=Math.max(1,parseInt(modalVal)||1);
-      return calcGP(itU,itU.unitPrice*qty,qty);
+      const qty=Math.max(1,Math.round(val)||1);
+      const rev=(modal.tiers&&modal.tiers.length>0)?calcTierPrice(modal.tiers,qty):(parseFloat(modal.unitPrice)||0)*qty;
+      return{rev,gp:calcGP(itU,rev,qty)};
     }
-    return calcGP(itU,parseFloat(modalVal)||0,0);
+    return{rev:val,gp:calcGP(itU,val,0)};
   };
 
   const commit=()=>{
     const lines=[];
     items.forEach(it=>{
       const st=getCart(it.id);if(!st.selected)return;
-      lines.push(it.priceMode==='unit'
-        ?{itemId:it.id,qty:st.qty||1,amount:null}
-        :{itemId:it.id,qty:null,amount:parseFloat(st.amount)||0});
+      if(it.priceMode==='unit'){
+        const qty=st.qty||1;
+        const rev=(it.tiers&&it.tiers.length>0)?calcTierPrice(it.tiers,qty):(parseFloat(it.unitPrice)||0)*qty;
+        lines.push({itemId:it.id,qty,amount:null,revenue:rev});
+      } else {
+        const rev=parseFloat(st.amount)||0;
+        lines.push({itemId:it.id,qty:null,amount:rev,revenue:rev});
+      }
     });
     if(!lines.length){alert('請先選擇品項');return;}
     setTransactions([...transactions,{id:uid(),lines,time:nowTime()}]);
@@ -385,10 +481,10 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
     let txRev=0,txGp=0;const parts=[];
     tx.lines.forEach(l=>{
       const it=items.find(i=>i.id===l.itemId);if(!it)return;
-      const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};
-      const r=itU.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);
+      const itU={...it,profitValue:parseFloat(it.profitValue)||0};
+      const r=l.revenue||0;
       txRev+=r;txGp+=calcGP(itU,r,l.qty||0);
-      const label=it.priceMode==='unit'?(it.name||'未命名')+' ×'+l.qty:(it.name||'未命名')+' '+fmt(l.amount||0);
+      const label=it.priceMode==='unit'?(it.name||'未命名')+' ×'+l.qty+' '+fmt(r):(it.name||'未命名')+' '+fmt(r);
       parts.push(label);
     });
     return h('div',{key:tx.id,className:'txcard'},
@@ -401,6 +497,8 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
     );
   };
 
+  const {rev:mRev,gp:mGP}=modalRevGP();
+
   return h('div',{className:'pg on'},
     h(SyncBar,{status:syncStatus}),
     h('div',{className:'day-bar'},
@@ -411,12 +509,18 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
       h('div',{className:'tx-hd'},h('span',{className:'tx-hd-l'},'新增交易'),h('span',{className:'tx-sub'},'小計 '+fmt(subtotal))),
       h('button',{className:'done-btn',onClick:commit},'✓  完成交易'),
       h('div',{className:'picker',ref:pickerRef},
-        items.map(it=>{
+        sortedItems.map(it=>{
           const st=getCart(it.id);
-          const itU={...it,unitPrice:parseFloat(it.unitPrice)||0};
-          const dispAmt=st.selected
-            ?(it.priceMode==='unit'?fmt(itU.unitPrice*(st.qty||1))+(st.qty>1?' ×'+st.qty:''):fmt(parseFloat(st.amount)||0))
-            :'';
+          let dispAmt='';
+          if(st.selected){
+            if(it.priceMode==='unit'){
+              const qty=st.qty||1;
+              const rev=(it.tiers&&it.tiers.length>0)?calcTierPrice(it.tiers,qty):(parseFloat(it.unitPrice)||0)*qty;
+              dispAmt=fmt(rev)+(qty>1?' ×'+qty:'');
+            } else {
+              dispAmt=fmt(parseFloat(st.amount)||0);
+            }
+          }
           return h('div',{key:it.id,className:'prow'+(st.selected?' sel':''),onClick:()=>openModal(it)},
             h('div',{className:'pname'},it.name||'未命名'),
             st.selected&&h('div',{className:'prow-amt'},dispAmt)
@@ -425,38 +529,55 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
       )
     ),
     h('div',{className:'rec-hd'},h('span',{className:'rec-l'},'交易記錄'),h('span',{className:'rec-c'},transactions.length+' 筆')),
-    transactions.length===0
-      ?h('div',{className:'empty'},'尚無交易記錄')
-      :[...transactions].reverse().map((tx,ri)=>txLine(tx,transactions.length-ri-1)),
+    transactions.length===0?h('div',{className:'empty'},'尚無交易記錄'):[...transactions].reverse().map((tx,ri)=>txLine(tx,transactions.length-ri-1)),
 
     // Modal
     modal&&h('div',{className:'modal-overlay',onClick:closeModal},
       h('div',{className:'modal',onClick:e=>e.stopPropagation()},
         h('div',{className:'modal-name'},modal.name||'未命名'),
         h('div',{className:'modal-meta'},
-          modal.priceMode==='unit'?'$'+(parseFloat(modal.unitPrice)||0)+'/件':'售出金額',
+          modal.priceMode==='unit'
+            ?(modal.tiers&&modal.tiers.length>0?'階梯定價':'$'+(parseFloat(modal.unitPrice)||0)+'/件')
+            :'售出金額',
           '　',
-          h('span',{className:'gp'},
-            modal.profitMode==='margin'?'毛利率 '+(modal.profitValue||0)+'%':'成本 $'+(modal.profitValue||0)
-          )
+          h('span',{className:'gp'},modal.profitMode==='margin'?'毛利率 '+(modal.profitValue||0)+'%':'成本 $'+(modal.profitValue||0))
         ),
-        h('div',{className:'modal-label'},modal.priceMode==='unit'?'數量':'金額 $'),
-        h('div',{className:'modal-input-wrap'},
-          modal.priceMode==='amount'&&h('span',{className:'ds'},'$'),
-          h('input',{
-            type:'number',
-            inputMode:'numeric',
-            pattern:'[0-9]*',
-            min:modal.priceMode==='unit'?1:0,
-            placeholder:modal.priceMode==='unit'?'1':'0',
-            value:modalVal,
-            className:modal.priceMode==='amount'?'has-prefix':'',
-            autoFocus:true,
-            onChange:e=>setModalVal(e.target.value),
-            onKeyDown:e=>{if(e.key==='Enter')confirmModal();}
+
+        // 件數模式：顯示階梯 chips
+        modal.priceMode==='unit'&&modal.tiers&&modal.tiers.length>0&&h('div',{className:'tier-hint'},
+          [...modal.tiers].sort((a,b)=>a.qty-b.qty).map(t=>{
+            const qty=Math.round(parseFloat(numStr)||1);
+            const isActive=parseInt(t.qty)===qty;
+            return h('div',{
+              key:t.id,
+              className:'tier-chip'+(isActive?' active':''),
+              onClick:()=>setNumStr(String(t.qty))
+            },(t.qty||'?')+'件 $'+(t.price||0));
           })
         ),
-        h('div',{className:'modal-gp'},modalVal?'毛利 '+fmt(modalGP()):''),
+
+        // 金額模式：快捷金額
+        modal.priceMode==='amount'&&modal.shortcuts&&modal.shortcuts.length>0&&h('div',{className:'shortcut-chips'},
+          modal.shortcuts.map(s=>h('div',{key:s,className:'sc-chip',onClick:()=>setNumStr(String(s))},'$'+s))
+        ),
+
+        // 顯示目前輸入值
+        h('div',{className:'modal-display'},
+          modal.priceMode==='amount'&&h('span',{className:'prefix'},'$'),
+          h('span',{className:'val'+(numStr?'':' empty-val')},numStr||'0')
+        ),
+
+        // 毛利預覽
+        h('div',{className:'modal-gp'},numStr?fmt(mRev)+'　毛利 '+fmt(mGP):''),
+
+        // 數字鍵盤
+        h('div',{className:'numpad'},
+          ['7','8','9','4','5','6','1','2','3'].map(k=>h('button',{key:k,className:'np-btn',onClick:()=>numPad(k)},k)),
+          h('button',{className:'np-btn dbl',onClick:()=>numPad('00')},'00'),
+          h('button',{className:'np-btn',onClick:()=>numPad('0')},'0'),
+          h('button',{className:'np-btn del',onClick:()=>numPad('del')},'⌫')
+        ),
+
         h('div',{className:'modal-btns'},
           h('button',{className:'modal-cancel',onClick:closeModal},'取消'),
           h('button',{className:'modal-confirm',onClick:confirmModal},'確認')
@@ -466,7 +587,7 @@ function PageCashier({config,transactions,setTransactions,syncStatus}){
   );
 }
 
-// PAGE 3 結算
+// ═══ PAGE 3 結算 ═══
 function PageSettle({config,transactions,onSave,syncStatus}){
   const {items,fixedCosts}=config;
   const [saved,setSaved]=useState(false);
@@ -477,9 +598,9 @@ function PageSettle({config,transactions,onSave,syncStatus}){
     let rev=0,gp=0;const stat={};
     transactions.forEach(tx=>tx.lines.forEach(l=>{
       const it=items.find(i=>i.id===l.itemId);if(!it)return;
-      const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};
-      const r=itU.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);
-      rev+=r;const igp=calcGP(itU,r,l.qty||0);gp+=igp;
+      const itU={...it,profitValue:parseFloat(it.profitValue)||0};
+      const r=l.revenue||0;rev+=r;
+      const igp=calcGP(itU,r,l.qty||0);gp+=igp;
       if(!stat[l.itemId])stat[l.itemId]={rev:0,gp:0};
       stat[l.itemId].rev+=r;stat[l.itemId].gp+=igp;
     }));
@@ -502,14 +623,11 @@ function PageSettle({config,transactions,onSave,syncStatus}){
 
   const doSave=async()=>{
     setSaving(true);
-    try{
-      const entry={date:todayStr(),fixedCosts,items,transactions,rev,gp,net};
-      await fbSaveHistory(entry);
-      setSaved(true);
-      await onSave();
-    }catch(e){console.error(e);}
+    try{const entry={date:todayStr(),fixedCosts,items,transactions,rev,gp,net};await fbSaveHistory(entry);setSaved(true);await onSave();}
+    catch(e){console.error(e);}
     setSaving(false);
   };
+
   return h('div',{className:'pg on'},
     h(SyncBar,{status:syncStatus}),
     h('div',{style:{fontFamily:"'Space Mono',monospace",fontSize:'.65rem',color:'var(--t3)',textAlign:'center',marginBottom:14}},todayStr()),
@@ -528,14 +646,12 @@ function PageSettle({config,transactions,onSave,syncStatus}){
     saved
       ?h('div',{style:{textAlign:'center',color:'var(--grn)',fontSize:'.85rem',padding:'12px 0',fontWeight:700}},'✓ 已儲存至雲端')
       :h('button',{className:'btn-primary',onClick:doSave,disabled:saving},saving?'儲存中…':'儲存今日記錄 ☁'),
-    h('button',{
-      onClick:doCopy,
-      style:{width:'100%',marginTop:10,background:'rgba(124,92,252,.1)',border:'1.5px solid rgba(124,92,252,.25)',color:'var(--pur)',borderRadius:12,height:46,fontSize:'.88rem',fontWeight:700,fontFamily:"'Noto Sans TC',sans-serif",cursor:'pointer'}
-    },settleCopied?'✓ 已複製':'📋 複製今日結算報告')
+    h('button',{onClick:doCopy,style:{width:'100%',marginTop:10,background:'rgba(124,92,252,.1)',border:'1.5px solid rgba(124,92,252,.25)',color:'var(--pur)',borderRadius:12,height:46,fontSize:'.88rem',fontWeight:700,fontFamily:"'Noto Sans TC',sans-serif",cursor:'pointer'}},
+      settleCopied?'✓ 已複製':'📋 複製今日結算報告')
   );
 }
 
-// PAGE 4 歷史
+// ═══ PAGE 4 歷史 ═══
 function PageHistory({active,histKey}){
   const [open,setOpen]=useState({});
   const [copied,setCopied]=useState(null);
@@ -547,65 +663,57 @@ function PageHistory({active,histKey}){
     fbLoadHistory().then(list=>{setHistory(list);setLoading(false);}).catch(()=>setLoading(false));
   },[active,histKey]);
   if(!active)return null;
+
   const totalRev=history.reduce((s,d)=>s+(d.rev||0),0);
   const totalNet=history.reduce((s,d)=>s+(d.net||0),0);
-  function buildCopy(d){
-    const margin=d.rev>0?(d.net/d.rev*100):0;
-    const fl=(d.fixedCosts||[]).filter(r=>parseFloat(r.amount)>0);
+
+  function calcStat(d){
     const stat={};
     (d.transactions||[]).forEach(tx=>tx.lines.forEach(l=>{
       const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;
-      const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};
-      const r=it.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);
+      const itU={...it,profitValue:parseFloat(it.profitValue)||0};
+      const r=l.revenue||0;
       const gp=calcGP(itU,r,l.qty||0);
       if(!stat[l.itemId])stat[l.itemId]={name:it.name||'?',rev:0,gp:0};
       stat[l.itemId].rev+=r;stat[l.itemId].gp+=gp;
     }));
-    const se=Object.values(stat).filter(s=>s.rev>0);
+    return Object.values(stat).filter(s=>s.rev>0);
+  }
+
+  function buildCopy(d,mode){
+    const margin=d.rev>0?(d.net/d.rev*100):0;
+    const fl=(d.fixedCosts||[]).filter(r=>parseFloat(r.amount)>0);
+    const se=calcStat(d);
     let lines=[d.date||d._docId,'營業額 '+fmt(d.rev||0)+'　淨利 '+fmt(d.net||0)+'（'+margin.toFixed(0)+'%）'];
     if(fl.length>0)lines.push(fl.map(r=>(r.name||'費用')+' -'+fmt(parseFloat(r.amount)||0)).join('　'));
     if(se.length>0){
       lines.push('');
-      lines.push('── 品項明細 ──');
+      if(mode==='full')lines.push('── 品項明細 ──');
       se.forEach(s=>lines.push(s.name+'　'+fmt(s.rev)+'　毛利 '+fmt(s.gp)));
     }
-    const txs=d.transactions||[];
-    if(txs.length>0){
-      lines.push('');
-      txs.forEach(tx=>{const parts=[];let txRev=0;tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(l.qty||0):(l.amount||0);parts.push(it.priceMode==='unit'?(it.name||'?')+'×'+l.qty:(it.name||'?'));});lines.push((tx.time||'--:--')+'  '+parts.join(' ')+'  '+fmt(txRev));});
+    if(mode==='full'){
+      const txs=d.transactions||[];
+      if(txs.length>0){
+        lines.push('');
+        txs.forEach(tx=>{
+          const parts=[];let txRev=0;
+          tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=l.revenue||0;parts.push(it.priceMode==='unit'?(it.name||'?')+'×'+l.qty:(it.name||'?'));});
+          lines.push((tx.time||'--:--')+'  '+parts.join(' ')+'  '+fmt(txRev));
+        });
+      }
     }
     return lines.join('\n');
   }
 
-  function buildCopySimple(d){
-    const margin=d.rev>0?(d.net/d.rev*100):0;
-    const fl=(d.fixedCosts||[]).filter(r=>parseFloat(r.amount)>0);
-    const stat={};
-    (d.transactions||[]).forEach(tx=>tx.lines.forEach(l=>{
-      const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;
-      const itU={...it,unitPrice:parseFloat(it.unitPrice)||0,profitValue:parseFloat(it.profitValue)||0};
-      const r=it.priceMode==='unit'?itU.unitPrice*(l.qty||0):(l.amount||0);
-      const gp=calcGP(itU,r,l.qty||0);
-      if(!stat[l.itemId])stat[l.itemId]={name:it.name||'?',rev:0,gp:0};
-      stat[l.itemId].rev+=r;stat[l.itemId].gp+=gp;
-    }));
-    const se=Object.values(stat).filter(s=>s.rev>0);
-    let lines=[d.date||d._docId,'營業額 '+fmt(d.rev||0)+'　淨利 '+fmt(d.net||0)+'（'+margin.toFixed(0)+'%）'];
-    if(fl.length>0)lines.push(fl.map(r=>(r.name||'費用')+' -'+fmt(parseFloat(r.amount)||0)).join('　'));
-    if(se.length>0){
-      lines.push('');
-      se.forEach(s=>lines.push(s.name+'　'+fmt(s.rev)+'　毛利 '+fmt(s.gp)));
-    }
-    return lines.join('\n');
-  }
   function copyDay(d,e,mode){
     e.stopPropagation();
     const dateKey=d.date||d._docId;
-    const text=mode==='simple'?buildCopySimple(d):buildCopy(d);
     const key=dateKey+'-'+mode;
+    const text=buildCopy(d,mode);
     const done=()=>{setCopied(key);setTimeout(()=>setCopied(null),2000);};
     navigator.clipboard.writeText(text).then(done).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done();});
   }
+
   if(loading)return h('div',{className:'pg on'},h('div',{className:'empty'},'載入中…'));
   return h('div',{className:'pg on'},
     h('div',{className:'sec'},'累計統計'),
@@ -615,7 +723,7 @@ function PageHistory({active,histKey}){
       h('div',{className:'hs'},h('div',{className:'hs-l'},'總淨利'),h('div',{className:'hs-v '+(totalNet>=0?'g':'')},fmt(totalNet)))
     ),
     h('div',{className:'sec'},'每日記錄'),
-    history.length===0?h('div',{className:'no-hist'},'尚無歷史記錄\n在結算頁按「儲存今日記錄」'):
+    history.length===0?h('div',{className:'no-hist'},'尚無記錄'):
     history.map(d=>{
       const dateKey=d.date||d._docId;
       const isOpen=open[dateKey];
@@ -627,16 +735,16 @@ function PageHistory({active,histKey}){
           h('span',{className:'hday-arrow'},'▼')
         ),
         isOpen&&h('div',{className:'hday-body'},
-          h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:12}},
-            h('button',{className:'copy-btn',onClick:e=>copyDay(d,e,'full')},copied===dateKey+'-full'?'✓ 已複製':'📋 完整報告'),
-            h('button',{className:'copy-btn',onClick:e=>copyDay(d,e,'simple')},copied===dateKey+'-simple'?'✓ 已複製':'📊 品項明細')
+          h('div',{style:{display:'flex',gap:6,marginBottom:10}},
+            h('button',{className:'copy-btn',onClick:e=>copyDay(d,e,'simple')},copied===dateKey+'-simple'?'✓':'📊 品項明細'),
+            h('button',{className:'copy-btn',onClick:e=>copyDay(d,e,'full')},copied===dateKey+'-full'?'✓':'📋 完整報告')
           ),
-          h('div',{className:'sec',style:{marginBottom:8,marginTop:12}},'交易明細'),
+          h('div',{className:'sec',style:{marginBottom:6}},'交易明細'),
           (d.transactions||[]).length===0
-            ?h('div',{style:{fontSize:'.76rem',color:'var(--t3)',padding:'4px 0'}},'無記錄')
+            ?h('div',{style:{fontSize:'.76rem',color:'var(--t3)'}},'無記錄')
             :(d.transactions||[]).map((tx,i)=>{
               const parts=[];let txRev=0;
-              tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=it.priceMode==='unit'?(parseFloat(it.unitPrice)||0)*(l.qty||0):(l.amount||0);parts.push(it.priceMode==='unit'?(it.name||'?')+'×'+l.qty:(it.name||'?'));});
+              tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=l.revenue||0;parts.push(it.priceMode==='unit'?(it.name||'?')+'×'+l.qty:(it.name||'?'));});
               return h('div',{key:tx.id||i,className:'hday-txrow'},h('span',{className:'ti'},'#'+(i+1)+' '+parts.join('、')),h('span',{className:'tv'},fmt(txRev)));
             })
         )
@@ -645,15 +753,19 @@ function PageHistory({active,histKey}){
   );
 }
 
-// APP
+// ═══ APP ═══
 function App(){
-  const defConfig={fixedCosts:[{id:uid(),name:'攤位費',amount:''}],items:[{id:uid(),name:'',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:''}]};
+  const defConfig={
+    fixedCosts:[{id:uid(),name:'攤位費',amount:''}],
+    items:[{id:uid(),name:'',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:'',tiers:[],shortcuts:[]}]
+  };
   const [tab,setTab]=useState(0);
   const [config,setConfigRaw]=useState(defConfig);
   const [transactions,setTxRaw]=useState([]);
   const [syncStatus,setSyncStatus]=useState('ing');
   const [histKey,setHistKey]=useState(0);
   const saveTimer=useRef(null);
+
   useEffect(()=>{
     (async()=>{
       try{
@@ -664,31 +776,24 @@ function App(){
       }catch(e){console.error(e);setSyncStatus('err');}
     })();
   },[]);
-  useEffect(()=>{
-    const unsub=fbWatchTodayTx(txs=>setTxRaw(txs));
-    return unsub;
-  },[]);
+
+  useEffect(()=>{const unsub=fbWatchTodayTx(txs=>setTxRaw(txs));return unsub;},[]);
+
   const setConfig=v=>{
     const next=typeof v==='function'?v(config):v;
     setConfigRaw(next);
     clearTimeout(saveTimer.current);
     setSyncStatus('ing');
-    saveTimer.current=setTimeout(async()=>{
-      try{await fbSaveConfig(next);setSyncStatus('ok');}
-      catch{setSyncStatus('err');}
-    },1500);
+    saveTimer.current=setTimeout(async()=>{try{await fbSaveConfig(next);setSyncStatus('ok');}catch{setSyncStatus('err');}},1500);
   };
+
   const setTransactions=async txs=>{
-    setTxRaw(txs);
-    setSyncStatus('ing');
-    try{await fbSaveTodayTx(txs);setSyncStatus('ok');}
-    catch{setSyncStatus('err');}
+    setTxRaw(txs);setSyncStatus('ing');
+    try{await fbSaveTodayTx(txs);setSyncStatus('ok');}catch{setSyncStatus('err');}
   };
-  const onSave=async()=>{
-    await fbSaveTodayTx([]);
-    setTxRaw([]);
-    setHistKey(k=>k+1);
-  };
+
+  const onSave=async()=>{await fbSaveTodayTx([]);setTxRaw([]);setHistKey(k=>k+1);};
+
   const tabs=['設定','收銀','結算','歷史'];
   return h('div',null,
     h('div',{className:'nav'},tabs.map((t,i)=>h('button',{key:i,className:'ntab'+(tab===i?' on':''),onClick:()=>setTab(i)},h('span',{className:'sn'},'0'+(i+1)),t))),
