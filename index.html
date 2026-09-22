@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>收銀記帳</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -61,6 +64,9 @@ input::placeholder{color:var(--t3)}
 /* 階梯定價 */
 .tier-row{display:grid;grid-template-columns:80px 1fr 30px;gap:6px;align-items:center;margin-bottom:6px}
 .tier-label{font-size:.65rem;color:var(--t3);font-family:'Space Mono',monospace;text-align:right;white-space:nowrap}
+.tier-row2{display:grid;grid-template-columns:1fr auto 1.3fr 36px;gap:6px;align-items:center;margin-bottom:6px}
+.tier-u{font-size:.8rem;color:var(--t2);font-weight:700;white-space:nowrap}
+.tier-preview{margin-top:8px;font-family:'Space Mono',monospace;font-size:.68rem;color:var(--grn);background:var(--s2);border-radius:8px;padding:6px 8px;line-height:1.7}
 .add-tier-btn{background:none;border:1px dashed var(--bd2);color:var(--t3);height:30px;border-radius:7px;cursor:pointer;font-size:.7rem;font-family:'Noto Sans TC',sans-serif;width:100%;margin-top:2px}
 .add-tier-btn:active{border-color:var(--grn);color:var(--grn)}
 /* 快捷金額 */
@@ -99,8 +105,10 @@ input::placeholder{color:var(--t3)}
 .pname{font-size:1.05rem;font-weight:700;line-height:1.3;color:var(--t1)}
 .prow.sel .pname{color:var(--acc)}
 .prow-amt{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--t2);margin-top:3px}
-.prow.sortmode{background:var(--s3);border-style:dashed;border-color:var(--bd2);cursor:grab;padding:10px 6px}
-.prow.sortmode:active{cursor:grabbing}
+.prow.sortmode{background:var(--s3);border-style:dashed;border-color:var(--bd2);cursor:grab;padding:10px 6px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.prow.sortmode.src{opacity:.3}
+.prow.sortmode.over{border-color:var(--acc);border-style:solid;background:#fff5f7}
+.drag-ghost{position:fixed;transform:translate(-50%,-130%);background:var(--acc);color:#fff;padding:10px 16px;border-radius:12px;font-weight:900;font-size:1.05rem;pointer-events:none;z-index:600;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap}
 /* 交易記錄 */
 .rec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .rec-l{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);font-weight:700}
@@ -195,6 +203,40 @@ input::placeholder{color:var(--t3)}
 .sync-dot.err{background:var(--red)}
 .sync-dot.ing{background:var(--ora);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* 設定品項：字放大 */
+.icard .icard-top input{font-size:1.2rem;height:48px;font-weight:700}
+.icard .fl{font-size:.85rem;letter-spacing:.04em;min-height:26px;margin-bottom:6px;color:var(--t2)}
+.icard .pb{font-size:.88rem;padding:6px 12px}
+.icard input[type=number],.icard input[type=text]{font-size:1.1rem;height:46px}
+.icard .tier-u{font-size:1rem}
+.icard .add-tier-btn{font-size:.92rem;height:40px}
+.icard .tier-preview{font-size:.88rem;line-height:1.8}
+.icard .sc-amt-tag{font-size:1rem;padding:5px 10px}
+.icard .add-sc-btn{font-size:.95rem;height:36px}
+.icard .rm-btn{width:36px;height:36px;font-size:1.1rem}
+.icard .icard-fields{gap:12px}
+/* 成本框內紅色 $ / % */
+.unit-in{position:relative}
+.unit-sym{position:absolute;top:50%;transform:translateY(-50%);color:var(--red);font-weight:900;font-size:1.25rem;font-family:'Space Mono',monospace;pointer-events:none}
+.unit-in.dol .unit-sym{left:12px}
+.unit-in.dol input{padding-left:32px;padding-right:48px}
+.unit-in.pct .unit-sym{right:14px}
+.unit-in.pct input{padding-right:40px}
+.unit-per{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.95rem;font-weight:700;pointer-events:none}
+/* 件數快速加一 */
+.prow{position:relative}
+.prow.has-edit{padding-top:26px}
+.prow-edit{position:absolute;top:4px;right:4px;width:30px;height:28px;border-radius:8px;border:1.5px solid var(--acc);background:#fff;color:var(--acc);font-size:.95rem;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:1}
+.prow-edit:active{background:var(--acc);color:#fff}
+.prow:active{transform:scale(.97)}
+/* 收銀模式切換 */
+.mode-sw{display:grid;grid-template-columns:1fr 1.6fr;gap:6px;margin-bottom:10px}
+.mode-btn{height:44px;border-radius:12px;border:2px solid var(--bd);background:var(--s2);color:var(--t2);font-size:.95rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer}
+.mode-btn.on{background:#fff;border-color:var(--pur);color:var(--pur)}
+.mode-btn.on.fast{border-color:var(--ora);color:#fff;background:linear-gradient(135deg,var(--ora),var(--acc))}
+/* 快速記錄提示 */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:calc(100% - 28px);max-width:452px;background:#1a1814;color:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:1rem;font-weight:700;z-index:450;box-shadow:0 8px 24px rgba(0,0,0,.3);animation:fadeIn .15s}
+.toast-undo{background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:1rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -208,60 +250,90 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
 let _uid=Date.now();
 const uid=()=>String(++_uid);
+const APP_VER='v0922-9';
 
-// 階梯定價計算
-// tiers: [{qty, price}] 例如 [{qty:1,price:80},{qty:2,price:150}]
-// 超過最大qty時，用最後一個tier的 price/qty 作單價
-function calcTierPrice(tiers,qty){
-  if(!tiers||tiers.length===0) return 0;
-  const sorted=[...tiers].sort((a,b)=>a.qty-b.qty);
-  const exact=sorted.find(t=>parseFloat(t.qty)===qty);
-  if(exact) return parseFloat(exact.price)||0;
-  const below=sorted.filter(t=>parseFloat(t.qty)<qty);
-  if(below.length>0){
-    const last=below[below.length-1];
-    const unitPrice=(parseFloat(last.price)||0)/(parseFloat(last.qty)||1);
-    return Math.round(unitPrice*qty);
+// ═══ 售價組合（統一計價）═══
+// 組合表 [{qty,price}]，例：1斤$80、2斤$150
+//  · 剛好符合組合 → 組合價
+//  · 介於兩組之間 → 依比例（越多越貴、不跳價）
+//  · 少於最小組合 → 最小組合的單價
+//  【件數】超過最大組合 → 最大組合價 + 多出的件數 × 優惠單價（逐件加）
+//  【重量】整批用所在級距的單價：未滿2斤用1斤單價，2斤以上用2斤那組的單價（150÷2=75）
+//  超量/優惠單價未填 → 最大組合的平均單價
+//  · 件數模式沒設組合但有舊單價 → 視為 1單位＝舊單價
+function unitOf(it){return ((it&&it.unit)||'').trim()||'斤';}
+function getTiers(it){
+  let t=(it.tiers||[]).map(x=>({qty:parseFloat(x.qty),price:parseFloat(x.price)})).filter(x=>x.qty>0&&x.price>=0);
+  if(t.length===0&&it.priceMode==='unit'&&parseFloat(it.unitPrice)>0)t=[{qty:1,price:parseFloat(it.unitPrice)}];
+  return t.sort((a,b)=>a.qty-b.qty);
+}
+function overUnitOf(it,t){
+  const o=parseFloat(it.overUnit);if(o>0)return o;
+  const last=t[t.length-1];return last?last.price/last.qty:0;
+}
+const r2=x=>Math.round(x*100)/100;
+function priceForQty(it,qty){
+  const t=getTiers(it);if(!t.length||!(qty>0))return 0;
+  const first=t[0],last=t[t.length-1];
+  const ex=t.find(x=>x.qty===qty);if(ex)return ex.price;
+  if(isWeight(unitOf(it))){
+    let rate;
+    if(qty>last.qty)rate=last.price/last.qty;
+    else if(qty<first.qty)rate=first.price/first.qty;
+    else{const b=t.filter(x=>x.qty<=qty).pop();rate=b.price/b.qty;}
+    return Math.round(qty*rate);
   }
-  const first=sorted[0];
-  const unitPrice=(parseFloat(first.price)||0)/(parseFloat(first.qty)||1);
-  return Math.round(unitPrice*qty);
+  if(qty>last.qty)return Math.round(last.price+(qty-last.qty)*overUnitOf(it,t));
+  if(qty<first.qty)return Math.round(qty*first.price/first.qty);
+  for(let i=0;i<t.length-1;i++){const a=t[i],b=t[i+1];
+    if(qty>a.qty&&qty<b.qty)return Math.round(a.price+(b.price-a.price)*(qty-a.qty)/(b.qty-a.qty));}
+  return 0;
 }
-
-// 反推：由金額推算數量（斤數）
-function calcQtyFromAmount(tiers,amount){
-  if(!tiers||tiers.length===0||!amount) return 0;
-  const sorted=[...tiers].sort((a,b)=>parseFloat(a.qty)-parseFloat(b.qty));
-  // 精確匹配某個階梯價格
-  const exact=sorted.find(t=>parseFloat(t.price)===amount);
-  if(exact) return parseFloat(exact.qty)||0;
-  // 找金額落在哪個區間
-  const below=sorted.filter(t=>parseFloat(t.price)<=amount);
-  if(below.length>0){
-    const last=below[below.length-1];
-    const unitPrice=(parseFloat(last.price)||0)/(parseFloat(last.qty)||1);
-    if(unitPrice<=0) return 0;
-    return Math.round((amount/unitPrice)*100)/100; // 保留2位小數
+function qtyForAmount(it,amt){
+  const t=getTiers(it);if(!t.length||!(amt>0))return 0;
+  const first=t[0],last=t[t.length-1];
+  const ex=t.find(x=>x.price===amt);if(ex)return ex.qty;
+  if(isWeight(unitOf(it))){
+    let rate;
+    if(amt>last.price)rate=last.price/last.qty;
+    else if(amt<first.price)rate=first.price/first.qty;
+    else{const b=t.filter(x=>x.price<=amt).pop();rate=b.price/b.qty;}
+    return rate>0?r2(amt/rate):0;
   }
-  // 金額比最小階梯還小，用最小階梯單價
-  const first=sorted[0];
-  const unitPrice=(parseFloat(first.price)||0)/(parseFloat(first.qty)||1);
-  if(unitPrice<=0) return 0;
-  return Math.round((amount/unitPrice)*100)/100;
+  if(amt>last.price){const u=overUnitOf(it,t);return u>0?r2(last.qty+(amt-last.price)/u):0;}
+  if(amt<first.price)return first.price>0?r2(amt*first.qty/first.price):0;
+  for(let i=0;i<t.length-1;i++){const a=t[i],b=t[i+1];
+    if(amt>a.price&&amt<b.price)return r2(a.qty+(b.qty-a.qty)*(amt-a.price)/(b.price-a.price));}
+  return 0;
 }
-
-// 取得最後tier的單價
-function getBaseUnitPrice(tiers){
-  if(!tiers||tiers.length===0) return 0;
-  const sorted=[...tiers].sort((a,b)=>parseFloat(a.qty)-parseFloat(b.qty));
-  const last=sorted[sorted.length-1];
-  return (parseFloat(last.price)||0)/(parseFloat(last.qty)||1);
+const isWeight=u=>/斤|公斤|kg|兩|克|g|磅/i.test(u);
+function overLabel(it,t){
+  const u=unitOf(it);if(!t||!t.length)return '超過後每'+u;
+  const m=t[t.length-1].qty;
+  if(isWeight(u))return m+u+'以上每'+u;
+  return Number.isInteger(m)?'第'+(m+1)+u+'起每'+u:'超過'+m+u+'的部分每'+u;
 }
-
+function overRate(it,t){
+  if(isWeight(unitOf(it))){const l=t[t.length-1];return l?l.price/l.qty:0;}
+  return overUnitOf(it,t);
+}
+function tierSummary(it){
+  const t=getTiers(it);if(!t.length)return '未設售價';
+  const u=unitOf(it);
+  return t.map(x=>x.qty+u+'$'+x.price).join('・')+'・'+overLabel(it,t)+'$'+r2(overRate(it,t));
+}
 function calcGP(it,revenue,qty){
-  if(it.profitMode==='margin') return revenue*(it.profitValue/100);
-  if(it.priceMode==='unit') return revenue-it.profitValue*(qty||0);
-  return revenue*(1-it.profitValue/100);
+  const pv=parseFloat(it.profitValue)||0;
+  if(it.profitMode==='margin')return revenue*pv/100;
+  if(it.profitMode==='unitcost')return revenue-pv*(qty||0);
+  if(it.priceMode==='unit')return revenue-pv*(qty||0);
+  return revenue*(1-pv/100);
+}
+function profitLabel(it){
+  const pv=it.profitValue||0,u=unitOf(it);
+  if(it.profitMode==='margin')return '毛利率 '+pv+'%';
+  if(it.profitMode==='unitcost'||it.priceMode==='unit')return '成本 $'+pv+'/'+u;
+  return '成本 '+pv+'%';
 }
 
 async function fbSaveConfig(cfg){await db.collection('config').doc('current').set(cfg);}
@@ -281,7 +353,7 @@ function PillToggle({options,value,onChange}){
 function SyncBar({status}){
   const map={ok:'已同步',ing:'同步中…',err:'同步失敗'};
   if(!status||status==='idle')return null;
-  return h('div',{className:'sync-bar'},h('div',{className:'sync-dot '+status}),h('span',null,map[status]||''));
+  return h('div',{className:'sync-bar'},h('div',{className:'sync-dot '+status}),h('span',null,(map[status]||'')+'　'+APP_VER));
 }
 
 // ═══ PAGE 1 設定 ═══
@@ -298,7 +370,7 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
   const setItem=(id,f,v)=>setConfig(c=>({...c,items:c.items.map(it=>it.id===id?{...it,[f]:v}:it)}));
   const setPM=(id,m)=>setConfig(c=>({...c,items:c.items.map(it=>it.id===id?{...it,priceMode:m}:it)}));
   const setProM=(id,m)=>setConfig(c=>({...c,items:c.items.map(it=>it.id===id?{...it,profitMode:m}:it)}));
-  const addItem=()=>setConfig(c=>({...c,items:[...c.items,{id:uid(),name:'',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:'',tiers:[],shortcuts:[]}]}));
+  const addItem=()=>setConfig(c=>({...c,items:[...c.items,{id:uid(),name:'',unit:'斤',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:'',tiers:[{id:uid(),qty:'1',price:''}],overUnit:'',shortcuts:[]}]}));
   const rmItem=id=>setConfig(c=>({...c,items:c.items.filter(it=>it.id!==id)}));
   const loadConfig=d=>{if(window.confirm('載入 '+d.date+' 的品項設定？')){setConfig({fixedCosts:(d.fixedCosts||[]).map(f=>({...f,id:uid()})),items:(d.items||[]).map(it=>({...it,id:uid(),tiers:(it.tiers||[]).map(t=>({...t,id:uid()})),shortcuts:(it.shortcuts||[])}))});}};
 
@@ -360,28 +432,51 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
         // 計量方式
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
           h('div',{className:'fl',style:{marginBottom:0}},'計量方式'),
-          h(PillToggle,{options:[{v:'unit',l:'件數/斤'},{v:'amount',l:'售出金額'}],value:it.priceMode,onChange:m=>setPM(it.id,m)})
+          h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+            h('input',{type:'text',value:it.unit||'',placeholder:'斤',style:{width:58,height:40,textAlign:'center',fontFamily:"'Noto Sans TC',sans-serif",padding:'0 4px',fontWeight:700},onChange:e=>setItem(it.id,'unit',e.target.value)}),
+            h(PillToggle,{options:[{v:'unit',l:'輸入數量'},{v:'amount',l:'輸入金額'}],value:it.priceMode,onChange:m=>setPM(it.id,m)})
+          )
         ),
         // 利潤
         h('div',null,
           h('div',{className:'fl'},
-            h('span',null,it.profitMode==='margin'?'毛利率 %':(it.priceMode==='unit'?'單件成本 $':'成本佔比 %')),
-            h(PillToggle,{options:[{v:'cost',l:it.priceMode==='unit'?'成本$':'成本%'},{v:'margin',l:'毛利%'}],value:it.profitMode,onChange:m=>setProM(it.id,m)})
+            h('span',null,it.profitMode==='margin'?'毛利率':((it.profitMode==='unitcost'||it.priceMode==='unit')?'成本（每'+unitOf(it)+'）':'成本佔比')),
+            h(PillToggle,{options:it.priceMode==='unit'
+              ?[{v:'cost',l:'成本$/'+unitOf(it)},{v:'margin',l:'毛利%'}]
+              :[{v:'cost',l:'成本%'},{v:'unitcost',l:'成本$/'+unitOf(it)},{v:'margin',l:'毛利%'}],
+              value:(it.priceMode==='unit'&&it.profitMode==='unitcost')?'cost':it.profitMode,onChange:m=>setProM(it.id,m)})
           ),
-          h('input',{type:'number',value:it.profitValue,placeholder:it.profitMode==='cost'&&it.priceMode==='unit'?'0':'0-100',min:0,onChange:e=>setItem(it.id,'profitValue',e.target.value)})
+          (()=>{
+            const isPct=it.profitMode==='margin'||(it.profitMode==='cost'&&it.priceMode==='amount');
+            return h('div',{className:'unit-in '+(isPct?'pct':'dol')},
+              h('span',{className:'unit-sym'},isPct?'%':'$'),
+              h('input',{type:'number',inputMode:'decimal',value:it.profitValue,placeholder:isPct?'0-100':'0',min:0,onChange:e=>setItem(it.id,'profitValue',e.target.value)}),
+              !isPct&&h('span',{className:'unit-per'},'/'+unitOf(it))
+            );
+          })(),
+          it.priceMode==='amount'&&it.profitMode==='unitcost'&&getTiers(it).length===0&&h('div',{style:{fontSize:'.88rem',color:'var(--red)',marginTop:6}},'⚠ 要設定下方售價組合，才能由金額換算'+unitOf(it)+'數算成本')
         ),
-        // 售價組合（階梯）- 兩種模式都支援
+        // 售價組合（兩種模式共用）
         h('div',null,
-          h('div',{className:'fl'},it.priceMode==='unit'?'售價組合（階梯）':'售價組合（用於反推斤數）'),
-          (it.tiers||[]).map(t=>h('div',{key:t.id,className:'tier-row'},
-            h('span',{className:'tier-label'},t.qty?t.qty+'斤':'數量'),
-            h('div',{style:{display:'grid',gridTemplateColumns:'60px 1fr',gap:5}},
-              h('input',{type:'number',placeholder:'斤',value:t.qty,min:0,step:'0.1',inputMode:'decimal',onChange:e=>setTier(it.id,t.id,'qty',e.target.value)}),
-              h('input',{type:'number',placeholder:'售價$',value:t.price,min:0,inputMode:'numeric',onChange:e=>setTier(it.id,t.id,'price',e.target.value)})
-            ),
+          h('div',{className:'fl'},'售價組合'),
+          (it.tiers||[]).map(t=>h('div',{key:t.id,className:'tier-row2'},
+            h('input',{type:'number',placeholder:'數量',value:t.qty,min:0,step:'0.1',inputMode:'decimal',onChange:e=>setTier(it.id,t.id,'qty',e.target.value)}),
+            h('span',{className:'tier-u'},unitOf(it)+'　$'),
+            h('input',{type:'number',placeholder:'售價',value:t.price,min:0,inputMode:'numeric',onChange:e=>setTier(it.id,t.id,'price',e.target.value)}),
             h('button',{className:'rm-btn',onClick:()=>rmTier(it.id,t.id)},'×')
           )),
-          h('button',{className:'add-tier-btn',onClick:()=>addTier(it.id)},'＋ 新增售價組合')
+          h('button',{className:'add-tier-btn',onClick:()=>addTier(it.id)},'＋ 新增售價組合'),
+          isWeight(unitOf(it))
+            ?(getTiers(it).length>0&&h('div',{className:'tier-u',style:{marginTop:8,textAlign:'left'}},
+                overLabel(it,getTiers(it))+' $'+r2(overRate(it,getTiers(it)))+'（自動＝最大組合單價）'))
+            :h('div',{className:'tier-row2',style:{marginTop:8}},
+                h('span',{className:'tier-u',style:{gridColumn:'1 / 3',textAlign:'left'}},overLabel(it,getTiers(it))+' $'),
+                h('input',{type:'number',inputMode:'decimal',value:it.overUnit||'',placeholder:getTiers(it).length?String(r2(overUnitOf({...it,overUnit:''},getTiers(it))))+'(自動)':'自動',min:0,onChange:e=>setItem(it.id,'overUnit',e.target.value)}),
+                h('span',null)
+              ),
+          getTiers(it).length>0&&h('div',{className:'tier-preview'},
+            '試算：',(isWeight(unitOf(it))?[0.5,1,1.5,2,2.5,3,5]:[1,2,3,4,5,6]).map(q=>h('span',{key:q,style:{whiteSpace:'nowrap',marginRight:12,display:'inline-block'}},q+unitOf(it)+' $'+priceForQty(it,q)))
+          )
         ),
         // 金額模式：快捷金額
         it.priceMode==='amount'&&h('div',null,
@@ -416,6 +511,12 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
   const [modal,setModal]=useState(null);
   const [numStr,setNumStr]=useState(''); // 數字鍵盤輸入
   const [dragMode,setDragMode]=useState(false);
+  const [fast,setFastRaw]=useState(()=>{try{return localStorage.getItem('pos_fast')==='1';}catch(e){return false;}});
+  const setFast=v=>{setFastRaw(v);try{localStorage.setItem('pos_fast',v?'1':'0');}catch(e){}};
+  const [toast,setToast]=useState(null);
+  const toastTimer=useRef(null);
+  const txRef=useRef(transactions);
+  txRef.current=transactions;
   const pickerRef=useRef(null);
 
   const sortedItems=items;
@@ -435,7 +536,7 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
     const st=getCart(it.id);if(!st.selected)return s;
     if(it.priceMode==='unit'){
       const qty=st.qty||1;
-      const rev=(it.tiers&&it.tiers.length>0)?calcTierPrice(it.tiers,qty):(parseFloat(it.unitPrice)||0)*qty;
+      const rev=priceForQty(it,qty);
       return s+rev;
     }
     return s+(parseFloat(st.amount)||0);
@@ -445,6 +546,8 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
   const numPad=(key)=>{
     if(key==='del'){setNumStr(s=>s.slice(0,-1));return;}
     if(key==='00'){setNumStr(s=>(s==='0'||s==='')?s:s+'00');return;}
+    if(key==='.'){setNumStr(s=>s.includes('.')?s:(s===''?'0.':s+'.'));return;}
+    if(numStr.includes('.')&&numStr.split('.')[1].length>=2)return;
     if(numStr==='0'&&key!=='.'){setNumStr(key);return;}
     setNumStr(s=>s+key);
   };
@@ -454,14 +557,20 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
     setModal(it);
     setNumStr(it.priceMode==='unit'?String(st.qty||1):String(st.amount||''));
   };
+  const isQuick=it=>it.priceMode==='unit'&&!isWeight(unitOf(it));
+  const tapAdd=it=>{
+    const st=getCart(it.id);
+    updCart(it.id,{selected:true,qty:st.selected?(parseFloat(st.qty)||0)+1:1});
+  };
   const closeModal=()=>{setModal(null);setNumStr('');setTimeout(()=>{window.scrollTo({top:0,behavior:'smooth'});},50);};
 
-  const confirmModal=()=>{
+  const confirmModal=(override)=>{
     if(!modal)return;
-    const val=parseFloat(numStr)||0;
+    const val=parseFloat(typeof override==='string'?override:numStr)||0;
+    if(fast){if(val>0)recordSingle(modal,val);closeModal();return;}
+    if(!(val>0)){updCart(modal.id,{selected:false,qty:1,amount:''});closeModal();return;}
     if(modal.priceMode==='unit'){
-      const qty=Math.max(1,Math.round(val)||1);
-      updCart(modal.id,{selected:true,qty});
+      updCart(modal.id,{selected:true,qty:val});
     } else {
       updCart(modal.id,{selected:true,amount:String(val)});
     }
@@ -474,12 +583,12 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
     const itU={...modal,profitValue:parseFloat(modal.profitValue)||0};
     const val=parseFloat(numStr)||0;
     if(modal.priceMode==='unit'){
-      const qty=Math.max(1,Math.round(val)||1);
-      const rev=(modal.tiers&&modal.tiers.length>0)?calcTierPrice(modal.tiers,qty):(parseFloat(modal.unitPrice)||0)*qty;
+      const qty=val;
+      const rev=priceForQty(modal,qty);
       return{rev,gp:calcGP(itU,rev,qty),qty};
     }
     // 金額模式：反推斤數
-    const qty=(modal.tiers&&modal.tiers.length>0)?calcQtyFromAmount(modal.tiers,val):0;
+    const qty=qtyForAmount(modal,val);
     return{rev:val,gp:calcGP(itU,val,qty),qty};
   };
 
@@ -489,11 +598,11 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
       const st=getCart(it.id);if(!st.selected)return;
       if(it.priceMode==='unit'){
         const qty=st.qty||1;
-        const rev=(it.tiers&&it.tiers.length>0)?calcTierPrice(it.tiers,qty):(parseFloat(it.unitPrice)||0)*qty;
+        const rev=priceForQty(it,qty);
         lines.push({itemId:it.id,qty,amount:null,revenue:rev});
       } else {
         const rev=parseFloat(st.amount)||0;
-        const qty=(it.tiers&&it.tiers.length>0)?calcQtyFromAmount(it.tiers,rev):0;
+        const qty=qtyForAmount(it,rev);
         lines.push({itemId:it.id,qty,amount:rev,revenue:rev});
       }
     });
@@ -503,44 +612,66 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
   };
 
   const delTx=id=>setTransactions(transactions.filter(t=>t.id!==id));
+  const recordSingle=(it,val)=>{
+    let line;
+    if(it.priceMode==='unit'){line={itemId:it.id,qty:val,amount:null,revenue:priceForQty(it,val)};}
+    else{line={itemId:it.id,qty:qtyForAmount(it,val),amount:val,revenue:val};}
+    const tx={id:uid(),lines:[line],time:nowTime()};
+    const next=[...txRef.current,tx];
+    txRef.current=next;
+    setTransactions(next);
+    const txt=(it.name||'未命名')+' '+(it.priceMode==='unit'?val+unitOf(it)+' ':'')+fmt(line.revenue);
+    setToast({txId:tx.id,text:txt});
+    clearTimeout(toastTimer.current);
+    toastTimer.current=setTimeout(()=>setToast(null),4000);
+  };
+  const undoToast=()=>{
+    if(!toast)return;
+    const next=txRef.current.filter(t=>t.id!==toast.txId);
+    txRef.current=next;
+    setTransactions(next);
+    setToast(null);
+  };
   const {rev,gp}=totals();
 
-  // 拖曳排序（插入式）
-  const dragId=useRef(null);
-  const onDragStart=(e,id)=>{
-    dragId.current=id;
-    e.dataTransfer.effectAllowed='move';
-    e.currentTarget.style.opacity='0.3';
-  };
-  const onDragEnd=e=>{
-    e.currentTarget.style.opacity='';
-    document.querySelectorAll('.prow').forEach(el=>{el.style.borderColor='';el.style.borderStyle='';});
-    dragId.current=null;
-  };
-  const onDragOver=(e,id)=>{
+  // 觸控拖曳排序（手機電腦通用，插入式）
+  const [drag,setDrag]=useState(null);
+  const dragState=useRef(null);
+  const onPointerDown=(e,it)=>{
     e.preventDefault();
-    e.dataTransfer.dropEffect='move';
-    if(dragId.current===id)return;
-    document.querySelectorAll('.prow').forEach(el=>{el.style.borderColor='';el.style.borderStyle='';});
-    e.currentTarget.style.borderColor='var(--acc)';
-    e.currentTarget.style.borderStyle='solid';
+    if(e.currentTarget.setPointerCapture)e.currentTarget.setPointerCapture(e.pointerId);
+    dragState.current={id:it.id,overId:null};
+    setDrag({id:it.id,name:it.name||'未命名',x:e.clientX,y:e.clientY,overId:null});
   };
-  const onDrop=(e,targetId)=>{
-    e.preventDefault();
-    document.querySelectorAll('.prow').forEach(el=>{el.style.borderColor='';el.style.borderStyle='';});
-    const fromId=dragId.current;
-    if(!fromId||fromId===targetId)return;
+  const onPointerMove=e=>{
+    if(!dragState.current)return;
+    const el=document.elementFromPoint(e.clientX,e.clientY);
+    const cell=el&&el.closest('[data-pid]');
+    const overId=cell?cell.getAttribute('data-pid'):null;
+    dragState.current.overId=overId;
+    setDrag(d=>d?{...d,x:e.clientX,y:e.clientY,overId}:d);
+  };
+  const onPointerUp=()=>{
+    const s=dragState.current;
+    dragState.current=null;
+    setDrag(null);
+    if(!s||!s.overId||s.overId===s.id)return;
     setConfig(c=>{
       const arr=[...c.items];
-      const fi=arr.findIndex(x=>x.id===fromId);
-      const ti=arr.findIndex(x=>x.id===targetId);
+      const fi=arr.findIndex(x=>x.id===s.id);
+      const ti=arr.findIndex(x=>x.id===s.overId);
       if(fi<0||ti<0)return c;
-      const [moved]=arr.splice(fi,1);   // 抽出
-      arr.splice(ti,0,moved);           // 插入目標位置，其餘往後推
+      const [moved]=arr.splice(fi,1);
+      arr.splice(ti,0,moved);
       return{...c,items:arr};
     });
-    dragId.current=null;
   };
+  const onPointerCancel=()=>{dragState.current=null;setDrag(null);};
+  useEffect(()=>{
+    const block=e=>{if(dragState.current)e.preventDefault();};
+    document.addEventListener('touchmove',block,{passive:false});
+    return()=>document.removeEventListener('touchmove',block);
+  },[]);
 
   const txLine=(tx,i)=>{
     let txRev=0,txGp=0;const parts=[];
@@ -549,7 +680,7 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
       const itU={...it,profitValue:parseFloat(it.profitValue)||0};
       const r=l.revenue||0;
       txRev+=r;txGp+=calcGP(itU,r,l.qty||0);
-      const label=it.priceMode==='unit'?(it.name||'未命名')+' ×'+l.qty+' '+fmt(r):(it.name||'未命名')+' '+fmt(r);
+      const label=it.priceMode==='unit'?(it.name||'未命名')+' '+l.qty+unitOf(it)+' '+fmt(r):(it.name||'未命名')+' '+fmt(r)+(l.qty>0?'(約'+l.qty+unitOf(it)+')':'');
       parts.push(label);
     });
     return h('div',{key:tx.id,className:'txcard'},
@@ -578,10 +709,14 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
             onClick:()=>setDragMode(d=>!d),
             style:{background:dragMode?'var(--acc)':'var(--s2)',border:'1.5px solid '+(dragMode?'var(--acc)':'var(--bd)'),color:dragMode?'#fff':'var(--t3)',borderRadius:8,padding:'4px 10px',fontSize:'.7rem',fontWeight:700,fontFamily:"'Noto Sans TC',sans-serif",cursor:'pointer'}
           },dragMode?'✓ 排序中':'⇅ 排序'),
-          h('span',{className:'tx-sub'},'小計 '+fmt(subtotal))
+          (!fast||subtotal>0)&&h('span',{className:'tx-sub'},'小計 '+fmt(subtotal))
         )
       ),
-      h('button',{className:'done-btn',onClick:commit},'✓  完成交易'),
+      h('div',{className:'mode-sw'},
+        h('button',{className:'mode-btn'+(!fast?' on':''),onClick:()=>setFast(false)},'🧺 一般'),
+        h('button',{className:'mode-btn'+(fast?' on fast':''),onClick:()=>setFast(true)},'⚡ 快速（點一下記一筆）')
+      ),
+      (!fast||subtotal>0)&&h('button',{className:'done-btn',onClick:commit},'✓  完成交易'),
       h('div',{
         className:'picker',
         ref:pickerRef,
@@ -593,27 +728,31 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
           if(st.selected){
             if(it.priceMode==='unit'){
               const qty=st.qty||1;
-              const rev=(it.tiers&&it.tiers.length>0)?calcTierPrice(it.tiers,qty):(parseFloat(it.unitPrice)||0)*qty;
-              dispAmt=fmt(rev)+(qty>1?' ×'+qty:'');
+              const rev=priceForQty(it,qty);
+              dispAmt=qty+unitOf(it)+' '+fmt(rev);
             } else {
               dispAmt=fmt(parseFloat(st.amount)||0);
             }
           }
           if(dragMode){
+            const isSrc=drag&&drag.id===it.id;
+            const isOver=drag&&drag.overId===it.id&&drag.id!==it.id;
             return h('div',{
               key:it.id,
-              className:'prow sortmode',
-              draggable:true,
-              onDragStart:e=>onDragStart(e,it.id),
-              onDragEnd:onDragEnd,
-              onDragOver:e=>onDragOver(e,it.id),
-              onDrop:e=>onDrop(e,it.id)
+              'data-pid':it.id,
+              className:'prow sortmode'+(isSrc?' src':'')+(isOver?' over':''),
+              onPointerDown:e=>onPointerDown(e,it),
+              onPointerMove:onPointerMove,
+              onPointerUp:onPointerUp,
+              onPointerCancel:onPointerCancel
             },
               h('div',{style:{fontSize:'1rem',color:'var(--t3)',marginBottom:4}},'⣿'),
               h('div',{className:'pname',style:{fontSize:'.9rem'}},it.name||'未命名')
             );
           }
-          return h('div',{key:it.id,className:'prow'+(st.selected?' sel':''),onClick:()=>openModal(it)},
+          const quick=isQuick(it);
+          return h('div',{key:it.id,className:'prow'+(st.selected?' sel':'')+(quick&&st.selected?' has-edit':''),onClick:()=>quick?(fast?recordSingle(it,1):tapAdd(it)):openModal(it)},
+            quick&&st.selected&&h('button',{className:'prow-edit',onClick:e=>{e.stopPropagation();openModal(it);}},'✎'),
             h('div',{className:'pname'},it.name||'未命名'),
             st.selected&&h('div',{className:'prow-amt'},dispAmt)
           );
@@ -624,47 +763,51 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
     transactions.length===0?h('div',{className:'empty'},'尚無交易記錄'):[...transactions].reverse().map((tx,ri)=>txLine(tx,transactions.length-ri-1)),
 
     // Modal
+    drag&&h('div',{className:'drag-ghost',style:{left:drag.x,top:drag.y}},drag.name),
+    toast&&h('div',{className:'toast'},
+      h('span',null,'✓ 已記錄　'+toast.text),
+      h('button',{className:'toast-undo',onClick:undoToast},'復原')
+    ),
     modal&&h('div',{className:'modal-overlay'},
       h('div',{className:'modal'},
         h('div',{className:'modal-name'},modal.name||'未命名'),
         h('div',{className:'modal-meta'},
-          modal.priceMode==='unit'
-            ?(modal.tiers&&modal.tiers.length>0?'階梯定價':'$'+(parseFloat(modal.unitPrice)||0)+'/件')
-            :'售出金額',
+          modal.priceMode==='unit'?'輸入'+unitOf(modal)+'數':'輸入售出金額',
           '　',
-          h('span',{className:'gp'},modal.profitMode==='margin'?'毛利率 '+(modal.profitValue||0)+'%':'成本 $'+(modal.profitValue||0))
+          h('span',{className:'gp'},profitLabel(modal))
         ),
 
         // 階梯 chips（兩種模式都顯示）
-        modal.tiers&&modal.tiers.length>0&&h('div',{className:'tier-hint'},
-          [...modal.tiers].sort((a,b)=>parseFloat(a.qty)-parseFloat(b.qty)).map(t=>{
-            const isActive=modal.priceMode==='unit'
-              ?parseFloat(t.qty)===Math.round(parseFloat(numStr)||1)
-              :parseFloat(t.price)===parseFloat(numStr);
+        getTiers(modal).length>0&&h('div',{className:'tier-hint'},
+          getTiers(modal).map((t,ti)=>{
+            const isActive=modal.priceMode==='unit'?t.qty===parseFloat(numStr):t.price===parseFloat(numStr);
             return h('div',{
-              key:t.id,
+              key:ti,
               className:'tier-chip'+(isActive?' active':''),
-              onClick:()=>setNumStr(modal.priceMode==='unit'?String(t.qty):String(t.price))
-            },(t.qty||'?')+'斤 $'+(t.price||0));
+              onClick:()=>confirmModal(modal.priceMode==='unit'?String(t.qty):String(t.price))
+            },t.qty+unitOf(modal)+' $'+t.price);
           })
         ),
+        getTiers(modal).length>0&&h('div',{style:{textAlign:'center',fontSize:'.85rem',color:'var(--t3)',marginTop:-8,marginBottom:12}},
+          overLabel(modal,getTiers(modal))+' $'+r2(overRate(modal,getTiers(modal)))),
 
         // 金額模式：快捷金額
         modal.priceMode==='amount'&&modal.shortcuts&&modal.shortcuts.length>0&&h('div',{className:'shortcut-chips'},
-          modal.shortcuts.map(s=>h('div',{key:s,className:'sc-chip',onClick:()=>setNumStr(String(s))},'$'+s))
+          modal.shortcuts.map(s=>h('div',{key:s,className:'sc-chip',onClick:()=>confirmModal(String(s))},'$'+s))
         ),
 
         // 顯示目前輸入值
         h('div',{className:'modal-display'},
           modal.priceMode==='amount'&&h('span',{className:'prefix'},'$'),
-          h('span',{className:'val'+(numStr?'':' empty-val')},numStr||'0')
+          h('span',{className:'val'+(numStr?'':' empty-val')},numStr||'0'),
+          modal.priceMode==='unit'&&h('span',{className:'prefix'},unitOf(modal))
         ),
 
         // 毛利預覽
         h('div',{className:'modal-gp'},
           numStr
             ?(modal.priceMode==='amount'&&mQty>0
-                ?'約 '+mQty+' 斤　毛利 '+fmt(mGP)
+                ?'約 '+mQty+' '+unitOf(modal)+'　毛利 '+fmt(mGP)
                 :fmt(mRev)+'　毛利 '+fmt(mGP))
             :''
         ),
@@ -672,14 +815,16 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
         // 數字鍵盤
         h('div',{className:'numpad'},
           ['7','8','9','4','5','6','1','2','3'].map(k=>h('button',{key:k,className:'np-btn',onClick:()=>numPad(k)},k)),
-          h('button',{className:'np-btn dbl',onClick:()=>numPad('00')},'00'),
+          modal.priceMode==='unit'&&isWeight(unitOf(modal))
+            ?h('button',{className:'np-btn dbl',onClick:()=>numPad('.')},'.')
+            :h('button',{className:'np-btn dbl',onClick:()=>numPad('00')},'00'),
           h('button',{className:'np-btn',onClick:()=>numPad('0')},'0'),
           h('button',{className:'np-btn del',onClick:()=>numPad('del')},'⌫')
         ),
 
         h('div',{className:'modal-btns'},
           h('button',{className:'modal-cancel',onClick:closeModal},'取消'),
-          h('button',{className:'modal-confirm',onClick:confirmModal},'確認')
+          h('button',{className:'modal-confirm',onClick:()=>confirmModal()},'確認')
         )
       )
     )
@@ -796,7 +941,7 @@ function PageHistory({active,histKey}){
         lines.push('');
         txs.forEach(tx=>{
           const parts=[];let txRev=0;
-          tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=l.revenue||0;parts.push(it.priceMode==='unit'?(it.name||'?')+'×'+l.qty:(it.name||'?'));});
+          tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=l.revenue||0;parts.push(it.priceMode==='unit'?(it.name||'?')+' '+l.qty+unitOf(it):(it.name||'?')+(l.qty>0?' 約'+l.qty+unitOf(it):''));});
           lines.push((tx.time||'--:--')+'  '+parts.join(' ')+'  '+fmt(txRev));
         });
       }
@@ -843,7 +988,7 @@ function PageHistory({active,histKey}){
             ?h('div',{style:{fontSize:'.76rem',color:'var(--t3)'}},'無記錄')
             :(d.transactions||[]).map((tx,i)=>{
               const parts=[];let txRev=0;
-              tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=l.revenue||0;parts.push(it.priceMode==='unit'?(it.name||'?')+'×'+l.qty:(it.name||'?'));});
+              tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=l.revenue||0;parts.push(it.priceMode==='unit'?(it.name||'?')+' '+l.qty+unitOf(it):(it.name||'?')+(l.qty>0?' 約'+l.qty+unitOf(it):''));});
               return h('div',{key:tx.id||i,className:'hday-txrow'},h('span',{className:'ti'},'#'+(i+1)+' '+parts.join('、')),h('span',{className:'tv'},fmt(txRev)));
             })
         )
@@ -869,7 +1014,15 @@ function App(){
     (async()=>{
       try{
         const [cfg,txs]=await Promise.all([fbLoadConfig(),fbLoadTodayTx()]);
-        if(cfg)setConfigRaw(cfg);
+        if(cfg){
+          cfg.items=(cfg.items||[]).map(it=>{
+            const hasT=(it.tiers||[]).some(t=>parseFloat(t.qty)>0&&t.price!==''&&t.price!=null);
+            if(it.priceMode==='unit'&&!hasT&&parseFloat(it.unitPrice)>0)
+              return{...it,tiers:[{id:uid(),qty:'1',price:String(it.unitPrice)}]};
+            return{...it,tiers:it.tiers||[],shortcuts:it.shortcuts||[]};
+          });
+          setConfigRaw(cfg);
+        }
         if(txs.length)setTxRaw(txs);
         setSyncStatus('ok');
       }catch(e){console.error(e);setSyncStatus('err');}
