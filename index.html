@@ -284,6 +284,16 @@ input::placeholder{color:var(--t3)}
 .unit-opt{width:50px;height:44px;border-radius:12px;border:2px solid var(--bd);background:var(--s1);color:var(--t2);font-size:1.15rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer;padding:0}
 .unit-opt.on.w{background:var(--acc);border-color:var(--acc);color:#fff}
 .unit-opt.on.c{background:var(--ora);border-color:var(--ora);color:#fff}
+/* 設定頁頂端品項小按鍵 */
+.chip-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.item-chip{padding:8px 12px;border-radius:10px;font-size:.95rem;font-weight:900;border:1.5px solid;cursor:pointer;font-family:'Noto Sans TC',sans-serif;line-height:1.2}
+.item-chip.count{background:#ffe2c8;border-color:#ffcaa0;color:#a8520f}
+.item-chip.weight{background:#ffdde8;border-color:#ffbfd1;color:#b82a55}
+.item-chip.bad{border:2px solid var(--red);color:var(--red)}
+.item-chip:active{transform:scale(.95)}
+.icard{scroll-margin-top:84px}
+.icard.flash{animation:cardFlash 1.3s ease}
+@keyframes cardFlash{0%,100%{box-shadow:0 0 0 0 rgba(124,92,252,0)}25%,60%{box-shadow:0 0 0 4px rgba(124,92,252,.55)}}
 </style>
 </head>
 <body>
@@ -297,7 +307,7 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
 let _uid=Date.now();
 const uid=()=>String(++_uid);
-const APP_VER='v0922-14';
+const APP_VER='v0922-15';
 
 // ═══ 售價組合（統一計價）═══
 // 組合表 [{qty,price}]，例：1斤$80、2斤$150
@@ -422,6 +432,13 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
   const [pastConfigs,setPastConfigs]=useState([]);
   const [openItem,setOpenItem]=useState({});
   const [showFixed,setShowFixed]=useState(false);
+  const [flashId,setFlashId]=useState(null);
+  const jumpTo=id=>{
+    setOpenItem(o=>({...o,[id]:true}));
+    setFlashId(id);
+    setTimeout(()=>{const el=document.getElementById('ic-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60);
+    setTimeout(()=>setFlashId(f=>f===id?null:f),1400);
+  };
   const dragRef=useRef(null);
   useEffect(()=>{fbLoadHistory().then(h=>setPastConfigs(h.slice(0,5)));},[]);
 
@@ -477,9 +494,14 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
 
   return h('div',{className:'pg on'},
     h(SyncBar,{status:syncStatus}),
+    items.length>0&&h('div',{className:'sec'},'全部品項（點一下跳到設定）'),
+    items.length>0&&h('div',{className:'chip-bar'},
+      items.map(it=>h('button',{key:it.id,className:'item-chip '+itemKind(it)+(itemErr(it)?' bad':''),onClick:()=>jumpTo(it.id)},
+        (itemErr(it)?'⚠ ':'')+(it.name||'未命名')))
+    ),
     h('div',{className:'sec'},'品項設定（↑↓ 或拖曳排序，收銀頁同步）'),
     h('div',{className:'kind-legend'},
-      h('span',null,h('i',{className:'dot count'}),'件・包・個（固定數量）'),
+      h('span',null,h('i',{className:'dot count'}),'包・把・顆（固定數量）'),
       h('span',null,h('i',{className:'dot weight'}),'斤（秤重）・輸入金額')
     ),
     items.map((it,idx)=>{
@@ -488,7 +510,7 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
      const sumTxt=(it.priceMode==='unit'
         ?(getTiers(it).map(x=>x.qty+unitOf(it)+'$'+x.price).join('・')||'未設售價')
         :'輸入金額')+'　'+profitLabel(it);
-     return h('div',{key:it.id,className:'icard '+itemKind(it)+(err?' bad':'')+(isOpen?' open':''),draggable:true,onDragStart:e=>onDragStart(e,it.id),onDragEnd,onDragOver:e=>onDragOver(e,it.id),onDrop:e=>onDrop(e,it.id)},
+     return h('div',{key:it.id,id:'ic-'+it.id,className:'icard '+itemKind(it)+(err?' bad':'')+(isOpen?' open':'')+(flashId===it.id?' flash':''),draggable:true,onDragStart:e=>onDragStart(e,it.id),onDragEnd,onDragOver:e=>onDragOver(e,it.id),onDrop:e=>onDrop(e,it.id)},
       h('div',{className:'icard-top',style:{gridTemplateColumns:'1fr auto auto auto'}},
         isOpen
         ?h('input',{type:'text',value:it.name,placeholder:'品項名稱',style:{fontFamily:"'Noto Sans TC',sans-serif",fontSize:'.9rem'},onChange:e=>setItem(it.id,'name',e.target.value)})
