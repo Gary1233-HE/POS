@@ -307,7 +307,7 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
 let _uid=Date.now();
 const uid=()=>String(++_uid);
-const APP_VER='v0922-15';
+const APP_VER='v0922-16';
 
 // ═══ 售價組合（統一計價）═══
 // 組合表 [{qty,price}]，例：1斤$80、2斤$150
@@ -318,6 +318,17 @@ const APP_VER='v0922-15';
 //  【重量】整批用所在級距的單價：未滿2斤用1斤單價，2斤以上用2斤那組的單價（150÷2=75）
 //  超量/優惠單價未填 → 最大組合的平均單價
 //  · 件數模式沒設組合但有舊單價 → 視為 1單位＝舊單價
+// ═══ 震動回饋 ═══
+// Android：navigator.vibrate；iPhone（iOS 18+ Safari）：系統開關元件的觸覺回饋；不支援就略過
+function haptic(kind){
+  const pat=kind==='success'?[35]:kind==='error'?[40,60,40]:[12];
+  try{if(navigator.vibrate&&navigator.vibrate(pat))return;}catch(e){}
+  try{
+    const lb=document.createElement('label');lb.setAttribute('aria-hidden','true');lb.style.display='none';
+    const ip=document.createElement('input');ip.type='checkbox';ip.setAttribute('switch','');
+    lb.appendChild(ip);document.head.appendChild(lb);lb.click();document.head.removeChild(lb);
+  }catch(e){}
+}
 const UNITS=['斤','包','把','顆'];
 function unitOf(it){return ((it&&it.unit)||'').trim()||'斤';}
 function getTiers(it){
@@ -731,8 +742,9 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
         lines.push({itemId:it.id,qty,amount:rev,revenue:rev});
       }
     });
-    if(!lines.length){alert('請先選擇品項');return;}
+    if(!lines.length){haptic('error');alert('請先選擇品項');return;}
     setTransactions([...transactions,{id:uid(),lines,time:nowTime()}]);
+    haptic('success');
     setCart({});
   };
 
@@ -745,6 +757,7 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
     const next=[...txRef.current,tx];
     txRef.current=next;
     setTransactions(next);
+    haptic('success');
     const txt=(it.name||'未命名')+' '+(it.priceMode==='unit'?val+unitOf(it)+' ':'')+fmt(line.revenue);
     setToast({txId:tx.id,text:txt});
     clearTimeout(toastTimer.current);
@@ -763,6 +776,7 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
   const [drag,setDrag]=useState(null);
   const dragState=useRef(null);
   const onPointerDown=(e,it)=>{
+    haptic();
     e.preventDefault();
     if(e.currentTarget.setPointerCapture)e.currentTarget.setPointerCapture(e.pointerId);
     dragState.current={id:it.id,overId:null};
@@ -781,6 +795,7 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
     dragState.current=null;
     setDrag(null);
     if(!s||!s.overId||s.overId===s.id)return;
+    haptic('success');
     setConfig(c=>{
       const arr=[...c.items];
       const fi=arr.findIndex(x=>x.id===s.id);
@@ -1239,6 +1254,10 @@ function App(){
   );
 }
 ReactDOM.createRoot(document.getElementById('root')).render(h(App,null));
+document.addEventListener('click',e=>{
+  const t=e.target;
+  if(t&&t.closest&&t.closest('button,.prow,.item-chip,.tier-chip,.sc-chip,.icard-brief,.fixed-hd,.hday-hd,.sc-row'))haptic();
+},true);
 </script>
 </body>
 </html>
