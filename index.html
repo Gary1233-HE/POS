@@ -294,6 +294,10 @@ input::placeholder{color:var(--t3)}
 .icard{scroll-margin-top:84px}
 .icard.flash{animation:cardFlash 1.3s ease}
 @keyframes cardFlash{0%,100%{box-shadow:0 0 0 0 rgba(124,92,252,0)}25%,60%{box-shadow:0 0 0 4px rgba(124,92,252,.55)}}
+/* 震動測試 */
+.vib-test{margin-top:24px;padding-top:14px;border-top:1.5px dashed var(--bd2);text-align:center}
+.vib-btn{background:var(--s1);border:1.5px solid var(--bd);border-radius:12px;height:44px;padding:0 20px;font-size:.95rem;font-weight:700;font-family:'Noto Sans TC',sans-serif;color:var(--t2);cursor:pointer}
+.vib-info{font-size:.8rem;color:var(--t3);margin-top:8px;line-height:1.6}
 </style>
 </head>
 <body>
@@ -307,7 +311,7 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
 let _uid=Date.now();
 const uid=()=>String(++_uid);
-const APP_VER='v0922-16';
+const APP_VER='v0922-17';
 
 // ═══ 售價組合（統一計價）═══
 // 組合表 [{qty,price}]，例：1斤$80、2斤$150
@@ -324,10 +328,40 @@ function haptic(kind){
   const pat=kind==='success'?[35]:kind==='error'?[40,60,40]:[12];
   try{if(navigator.vibrate&&navigator.vibrate(pat))return;}catch(e){}
   try{
+    if(deviceInfo().standalone){
+      // 桌面模式：常駐隱藏開關（不用 display:none），每次點一下
+      let lb=document.getElementById('__hap');
+      if(!lb){
+        lb=document.createElement('label');lb.id='__hap';lb.setAttribute('aria-hidden','true');
+        lb.style.cssText='position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0.01;overflow:hidden;pointer-events:none;z-index:-1';
+        const ip=document.createElement('input');ip.type='checkbox';ip.setAttribute('switch','');
+        lb.appendChild(ip);document.body.appendChild(lb);
+      }
+      lb.click();
+      if(kind==='success'||kind==='error')setTimeout(()=>lb.click(),90);
+      return;
+    }
     const lb=document.createElement('label');lb.setAttribute('aria-hidden','true');lb.style.display='none';
     const ip=document.createElement('input');ip.type='checkbox';ip.setAttribute('switch','');
     lb.appendChild(ip);document.head.appendChild(lb);lb.click();document.head.removeChild(lb);
   }catch(e){}
+}
+function deviceInfo(){
+  const ua=navigator.userAgent||'';
+  const m=ua.match(/OS (\d+)_(\d+)/);
+  const ios=/iPhone|iPad|iPod/.test(ua);
+  const standalone=window.navigator.standalone===true||!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  return{ios,iosVer:m?(m[1]+'.'+m[2]):'',standalone,vib:typeof navigator.vibrate==='function'};
+}
+function VibTest(){
+  const [msg,setMsg]=useState('');
+  const d=deviceInfo();
+  const way=d.vib?'Android 震動':(d.ios?(parseFloat(d.iosVer)>=18?'iPhone 觸覺回饋':'iOS '+d.iosVer+' 不支援網頁震動'):'此裝置不支援');
+  return h('div',{className:'vib-test'},
+    h('button',{className:'vib-btn',onClick:()=>{haptic('success');setMsg('已送出震動 '+new Date().toLocaleTimeString('zh-TW'));}},'📳 測試震動'),
+    h('div',{className:'vib-info'},APP_VER+'｜'+(d.ios?'iPhone iOS '+(d.iosVer||'?'):(d.vib?'Android':'其他裝置'))+'｜'+(d.standalone?'桌面模式':'瀏覽器')+'｜'+way),
+    msg&&h('div',{className:'vib-info'},msg)
+  );
 }
 const UNITS=['斤','包','把','顆'];
 function unitOf(it){return ((it&&it.unit)||'').trim()||'斤';}
@@ -636,7 +670,8 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
         h('div',{className:'sc-info'},(d.items||[]).length+' 個品項'),
         h('div',{className:'sc-load'},'載入')
       )))
-    )
+    ),
+    h(VibTest,null)
   );
 }
 
