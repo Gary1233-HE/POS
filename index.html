@@ -298,6 +298,19 @@ input::placeholder{color:var(--t3)}
 .vib-test{margin-top:24px;padding-top:14px;border-top:1.5px dashed var(--bd2);text-align:center}
 .vib-btn{background:var(--s1);border:1.5px solid var(--bd);border-radius:12px;height:44px;padding:0 20px;font-size:.95rem;font-weight:700;font-family:'Noto Sans TC',sans-serif;color:var(--t2);cursor:pointer}
 .vib-info{font-size:.8rem;color:var(--t3);margin-top:8px;line-height:1.6}
+/* 報表圖片 */
+.rep-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 6px}
+.rep-btns .copy-btn,.rep-btns .img-btn{height:46px}
+.img-btn{background:linear-gradient(135deg,var(--acc),var(--ora));color:#fff;border:none;border-radius:10px;height:38px;font-size:.85rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer;flex:1}
+.img-btn:active{opacity:.85}
+.img-ov{position:fixed;inset:0;background:#14120e;z-index:700;display:flex;flex-direction:column;align-items:center;padding:14px 14px 20px;overflow-y:auto}
+.img-tip{color:#fff;font-size:.9rem;font-weight:700;margin-bottom:10px;text-align:center}
+.img-pv{width:100%;max-width:460px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.5);-webkit-touch-callout:default}
+.img-btns{display:flex;gap:8px;width:100%;max-width:460px;margin-top:14px;position:sticky;bottom:0}
+.img-b{flex:1;height:52px;border-radius:12px;border:none;font-size:1rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.img-b.share{background:#06c755;color:#fff}
+.img-b.dl{background:#fff;color:#1a1814}
+.img-b.close{background:#3a3833;color:#fff}
 </style>
 </head>
 <body>
@@ -311,7 +324,7 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
 let _uid=Date.now();
 const uid=()=>String(++_uid);
-const APP_VER='v0922-17';
+const APP_VER='v0922-18';
 
 // ═══ 售價組合（統一計價）═══
 // 組合表 [{qty,price}]，例：1斤$80、2斤$150
@@ -471,6 +484,103 @@ function itemErr(it){
   return '';
 }
 function itemKind(it){return (it.priceMode==='unit'&&!isWeight(unitOf(it)))?'count':'weight';}
+// ═══ 報表圖片 ═══
+// rep={title,sub,kpis:[{l,v,c}],note,rows:[{name,rev,gp}],daily:[{d,rev,net}]}
+async function drawReport(rep){
+  try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}
+  const W=1080,P=56,F="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif",M="'Space Mono',Menlo,monospace";
+  const rows=rep.rows||[],daily=rep.daily||[];
+  const RH=78,DH=64;
+  let H=300+250+(rep.note?70:0)+(rows.length?110+rows.length*RH:0)+(daily.length?110+daily.length*DH:0)+110;
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  const x=c.getContext('2d');
+  const rr=(X,Y,w,hh,r,fill,stroke)=>{x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+hh,r);x.arcTo(X+w,Y+hh,X,Y+hh,r);x.arcTo(X,Y+hh,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();if(fill){x.fillStyle=fill;x.fill();}if(stroke){x.strokeStyle=stroke;x.lineWidth=3;x.stroke();}};
+  const txt=(t,X,Y,font,col,align)=>{x.font=font;x.fillStyle=col;x.textAlign=align||'left';x.textBaseline='middle';x.fillText(t,X,Y);};
+  // 背景
+  x.fillStyle='#f0eee8';x.fillRect(0,0,W,H);
+  // 頁首
+  const g=x.createLinearGradient(0,0,W,0);g.addColorStop(0,'#ff4d6d');g.addColorStop(1,'#ff8c42');
+  x.fillStyle=g;x.fillRect(0,0,W,260);
+  txt(rep.title,P,100,'900 64px '+F,'#fff');
+  txt(rep.sub,P,180,'700 40px '+M,'rgba(255,255,255,.92)');
+  let y=300;
+  // KPI
+  const k=rep.kpis,kw=(W-P*2-24*(k.length-1))/k.length;
+  k.forEach((it,i)=>{
+    const X=P+i*(kw+24);
+    rr(X,y,kw,210,28,'#fff','#e0ddd6');
+    txt(it.l,X+30,y+52,'700 32px '+F,'#a8a49c');
+    let fs=60;x.font='700 '+fs+'px '+M;while(x.measureText(it.v).width>kw-60&&fs>30){fs-=4;x.font='700 '+fs+'px '+M;}
+    txt(it.v,X+30,y+128,'700 '+fs+'px '+M,it.c||'#1a1814');
+    if(it.s)txt(it.s,X+30,y+180,'700 28px '+F,'#6b6860');
+  });
+  y+=250;
+  if(rep.note){txt(rep.note,P,y+20,'700 32px '+F,'#6b6860');y+=70;}
+  // 品項
+  if(rows.length){
+    txt('品項統計',P,y+30,'900 38px '+F,'#1a1814');
+    txt('營業額',W-P-260,y+30,'700 28px '+F,'#a8a49c','right');
+    txt('毛利',W-P,y+30,'700 28px '+F,'#a8a49c','right');
+    y+=70;
+    const mx=Math.max(...rows.map(r=>r.rev),1);
+    rr(P,y,W-P*2,rows.length*RH+20,28,'#fff','#e0ddd6');
+    y+=10;
+    rows.forEach((r,i)=>{
+      const cy=y+RH/2;
+      const bw=(W-P-470-(P+20))*(r.rev/mx);
+      rr(P+20,y+8,Math.max(bw,8),RH-16,14,r.kind==='count'?'#ffe2c8':'#ffdde8');
+      let nm=r.name;x.font='900 38px '+F;while(x.measureText(nm).width>W-P*2-480&&nm.length>1)nm=nm.slice(0,-1);
+      txt(nm,P+40,cy,'900 38px '+F,'#1a1814');
+      txt(fmt(r.rev),W-P-260,cy,'700 36px '+M,'#1a1814','right');
+      txt(fmt(r.gp),W-P-30,cy,'700 36px '+M,r.gp>=0?'#00a07a':'#e0304f','right');
+      y+=RH;
+    });
+    y+=40;
+  }
+  // 每日
+  if(daily.length){
+    txt('每日營業額',P,y+30,'900 38px '+F,'#1a1814');
+    txt('營業額',W-P-260,y+30,'700 28px '+F,'#a8a49c','right');
+    txt('淨利',W-P,y+30,'700 28px '+F,'#a8a49c','right');
+    y+=70;
+    const mx=Math.max(...daily.map(d=>d.rev),1);
+    rr(P,y,W-P*2,daily.length*DH+20,28,'#fff','#e0ddd6');
+    y+=10;
+    daily.forEach(d=>{
+      const cy=y+DH/2,bx=P+170,bmax=W-P-460-bx;
+      txt(d.d.slice(5),P+30,cy,'700 32px '+M,'#6b6860');
+      rr(bx,y+16,Math.max(bmax*(d.rev/mx),6),DH-32,10,'#ffb3c6');
+      txt(fmt(d.rev),W-P-260,cy,'700 32px '+M,'#1a1814','right');
+      txt(fmt(d.net),W-P-30,cy,'700 32px '+M,d.net>=0?'#00a07a':'#e0304f','right');
+      y+=DH;
+    });
+    y+=40;
+  }
+  txt('收銀記帳　'+new Date().toLocaleString('zh-TW',{hour12:false}),W/2,H-50,'500 26px '+F,'#a8a49c','center');
+  return c;
+}
+let __setImg=null;
+async function showReportImage(rep,fname){
+  const c=await drawReport(rep);
+  const url=c.toDataURL('image/png');
+  c.toBlob(b=>{if(__setImg)__setImg({url,blob:b,name:fname+'.png'});},'image/png');
+}
+function ImageViewer(){
+  const [img,setImg]=useState(null);
+  useEffect(()=>{__setImg=setImg;return()=>{__setImg=null};},[]);
+  if(!img)return null;
+  const file=img.blob?new File([img.blob],img.name,{type:'image/png'}):null;
+  const canShare=!!(file&&navigator.canShare&&navigator.canShare({files:[file]}));
+  return h('div',{className:'img-ov'},
+    h('div',{className:'img-tip'},'iPhone：長按圖片 →「加入照片」或「分享」'),
+    h('img',{src:img.url,className:'img-pv',alt:img.name}),
+    h('div',{className:'img-btns'},
+      canShare&&h('button',{className:'img-b share',onClick:async()=>{try{await navigator.share({files:[file],title:img.name});}catch(e){}}},'📤 分享（LINE）'),
+      h('a',{className:'img-b dl',href:img.url,download:img.name},'⬇ 下載'),
+      h('button',{className:'img-b close',onClick:()=>setImg(null)},'關閉')
+    )
+  );
+}
 // ═══ PAGE 1 設定 ═══
 function PageSetup({config,setConfig,goNext,syncStatus}){
   const {fixedCosts,items}=config;
@@ -1064,8 +1174,15 @@ function PageSettle({config,transactions,onSave,syncStatus}){
     saved
       ?h('div',{style:{textAlign:'center',color:'var(--grn)',fontSize:'.85rem',padding:'12px 0',fontWeight:700}},'✓ 已儲存至雲端')
       :h('button',{className:'btn-primary',onClick:doSave,disabled:saving},saving?'儲存中…':'儲存今日記錄 ☁'),
-    h('button',{onClick:doCopy,style:{width:'100%',marginTop:10,background:'rgba(124,92,252,.1)',border:'1.5px solid rgba(124,92,252,.25)',color:'var(--pur)',borderRadius:12,height:46,fontSize:'.88rem',fontWeight:700,fontFamily:"'Noto Sans TC',sans-serif",cursor:'pointer'}},
-      settleCopied?'✓ 已複製':'📋 複製今日結算報告')
+    h('div',{className:'rep-btns'},
+      h('button',{className:'copy-btn',onClick:doCopy},settleCopied?'✓ 已複製':'📋 複製文字'),
+      h('button',{className:'img-btn',onClick:()=>showReportImage({
+        title:'今日結算',sub:todayStr()+'　共 '+transactions.length+' 筆',
+        kpis:[{l:'營業額',v:fmt(rev)},{l:'毛利',v:fmt(gp),c:'#00a07a'},{l:'淨利',v:fmt(net),c:net>=0?'#00a07a':'#e0304f',s:'淨利率 '+margin.toFixed(1)+'%'}],
+        note:fixedCosts.filter(r=>parseFloat(r.amount)>0).map(r=>(r.name||'費用')+' -'+fmt(parseFloat(r.amount)||0)).join('　'),
+        rows:Object.entries(stat).filter(([,s])=>s.rev>0).map(([id,s])=>{const it=items.find(i=>i.id===id);return{name:it?it.name:'?',rev:s.rev,gp:s.gp,kind:it?itemKind(it):'weight'};}).sort((a,b)=>b.rev-a.rev)
+      },'結算_'+todayStr())},'🖼 存成圖片')
+    )
   );
 }
 
@@ -1109,7 +1226,7 @@ function PageHistory({active,histKey}){
       const itU={...it,profitValue:parseFloat(it.profitValue)||0};
       const r=l.revenue||0;
       const gp=calcGP(itU,r,l.qty||0);
-      if(!stat[l.itemId])stat[l.itemId]={name:it.name||'?',rev:0,gp:0};
+      if(!stat[l.itemId])stat[l.itemId]={name:it.name||'?',rev:0,gp:0,kind:itemKind(it)};
       stat[l.itemId].rev+=r;stat[l.itemId].gp+=gp;
     }));
     return Object.values(stat).filter(s=>s.rev>0);
@@ -1118,7 +1235,7 @@ function PageHistory({active,histKey}){
   function rangeStat(){
     const agg={};
     view.forEach(d=>calcStat(d).forEach(s=>{
-      if(!agg[s.name])agg[s.name]={name:s.name,rev:0,gp:0};
+      if(!agg[s.name])agg[s.name]={name:s.name,rev:0,gp:0,kind:s.kind};
       agg[s.name].rev+=s.rev;agg[s.name].gp+=s.gp;
     }));
     return Object.values(agg).sort((a,b)=>b.rev-a.rev);
@@ -1197,7 +1314,19 @@ function PageHistory({active,histKey}){
           h('div',{className:'mn gp'},fmt(st.gp))
         ))
       ),
-      h('button',{className:'copy-btn',style:{width:'100%',marginBottom:6},onClick:copyRange},rangeCopied?'✓ 已複製':'📋 複製區間報表')
+      h('div',{className:'rep-btns'},
+        h('button',{className:'copy-btn',onClick:copyRange},rangeCopied?'✓ 已複製':'📋 複製文字'),
+        h('button',{className:'img-btn',onClick:()=>{
+          const days=view.map(dkey).sort();
+          const head=(from||to)?((from||days[0]||'')+' ~ '+(to||days[days.length-1]||'')):(days.length?days[0]+' ~ '+days[days.length-1]:'全部');
+          showReportImage({
+            title:'區間報表',sub:head+'　'+view.length+' 天',
+            kpis:[{l:'營業額',v:fmt(totalRev)},{l:'毛利',v:fmt(totalGp),c:'#00a07a'},{l:'淨利',v:fmt(totalNet),c:totalNet>=0?'#00a07a':'#e0304f',s:'淨利率 '+rangeMargin.toFixed(1)+'%'}],
+            rows:rangeStat(),
+            daily:view.slice().sort((a,b)=>dkey(a).localeCompare(dkey(b))).map(d=>({d:dkey(d),rev:d.rev||0,net:d.net||0}))
+          },'區間_'+head.replace(/[ ~]+/g,'_'));
+        }},'🖼 存成圖片')
+      )
     ),
     h('div',{className:'sec',style:{marginTop:14}},'每日記錄'),
     view.length===0?h('div',{className:'no-hist'},history.length?'這個區間沒有記錄':'尚無記錄'):
@@ -1214,7 +1343,16 @@ function PageHistory({active,histKey}){
         isOpen&&h('div',{className:'hday-body'},
           h('div',{style:{display:'flex',gap:6,marginBottom:10}},
             h('button',{className:'copy-btn',onClick:e=>copyDay(d,e,'simple')},copied===dateKey+'-simple'?'✓':'📊 品項明細'),
-            h('button',{className:'copy-btn',onClick:e=>copyDay(d,e,'full')},copied===dateKey+'-full'?'✓':'📋 完整報告')
+            h('button',{className:'copy-btn',onClick:e=>copyDay(d,e,'full')},copied===dateKey+'-full'?'✓':'📋 完整報告'),
+            h('button',{className:'img-btn',onClick:e=>{e.stopPropagation();
+              const m=d.rev>0?(d.net/d.rev*100):0;
+              showReportImage({
+                title:'單日結算',sub:dateKey+'　共 '+(d.transactions||[]).length+' 筆',
+                kpis:[{l:'營業額',v:fmt(d.rev||0)},{l:'毛利',v:fmt(d.gp||0),c:'#00a07a'},{l:'淨利',v:fmt(d.net||0),c:(d.net||0)>=0?'#00a07a':'#e0304f',s:'淨利率 '+m.toFixed(1)+'%'}],
+                note:(d.fixedCosts||[]).filter(r=>parseFloat(r.amount)>0).map(r=>(r.name||'費用')+' -'+fmt(parseFloat(r.amount)||0)).join('　'),
+                rows:calcStat(d).sort((a,b)=>b.rev-a.rev)
+              },'結算_'+dateKey);
+            }},'🖼 圖片')
           ),
           h('div',{className:'sec',style:{marginBottom:6}},'交易明細'),
           (d.transactions||[]).length===0
@@ -1285,7 +1423,8 @@ function App(){
     tab===0&&h(PageSetup,{config,setConfig,goNext:()=>setTab(1),syncStatus}),
     tab===1&&h(PageCashier,{config,setConfig,transactions,setTransactions,syncStatus}),
     tab===2&&h(PageSettle,{config,transactions,onSave,syncStatus}),
-    h(PageHistory,{active:tab===3,histKey})
+    h(PageHistory,{active:tab===3,histKey}),
+    h(ImageViewer,null)
   );
 }
 ReactDOM.createRoot(document.getElementById('root')).render(h(App,null));
