@@ -320,7 +320,21 @@ input::placeholder{color:var(--t3)}
 .staff-l{font-size:.85rem;font-weight:900;color:var(--t2);margin-right:2px}
 .staff-chip{background:var(--s2);border:1.5px solid var(--bd);color:var(--t2);border-radius:20px;padding:6px 14px;font-size:.95rem;font-weight:700;font-family:'Noto Sans TC',sans-serif;cursor:pointer}
 .staff-chip.on{background:var(--pur);border-color:var(--pur);color:#fff}
-.staff-empty{font-size:.8rem;color:var(--t3);margin-bottom:12px;text-align:center}
+.staff-bar{cursor:pointer}
+.staff-me{font-size:1.15rem;font-weight:900;color:var(--pur)}
+.staff-bar.need .staff-me{color:var(--red)}
+.staff-switch{margin-left:auto;background:var(--s2);border:1.5px solid var(--bd);color:var(--t2);border-radius:20px;padding:5px 14px;font-size:.85rem;font-weight:700;font-family:'Noto Sans TC',sans-serif;cursor:pointer}
+.gate{position:fixed;inset:0;z-index:800;background:linear-gradient(160deg,#ff4d6d,#ff8c42);display:flex;flex-direction:column;align-items:center;padding:60px 20px 30px;overflow-y:auto}
+.gate-t{color:#fff;font-size:2rem;font-weight:900;margin-bottom:8px}
+.gate-s{color:rgba(255,255,255,.92);font-size:1rem;font-weight:700;margin-bottom:26px}
+.gate-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:420px;margin-bottom:26px}
+.gate-btn{position:relative;background:#fff;border:none;border-radius:18px;height:84px;font-size:1.6rem;font-weight:900;color:#1a1814;font-family:'Noto Sans TC',sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.12)}
+.gate-btn:active{transform:scale(.96)}
+.gate-btn.last{outline:4px solid #7c5cfc}
+.gate-last{position:absolute;top:6px;right:8px;font-size:.7rem;background:#7c5cfc;color:#fff;border-radius:8px;padding:1px 7px}
+.gate-add{display:flex;gap:8px;width:100%;max-width:420px}
+.gate-add input{flex:1;min-width:0;height:50px;border:none;border-radius:12px;padding:0 14px;font-size:1.05rem;font-family:'Noto Sans TC',sans-serif}
+.gate-add button{background:#1a1814;color:#fff;border:none;border-radius:12px;padding:0 14px;font-size:.95rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer;white-space:nowrap}
 .txby{font-size:.72rem;font-weight:700;color:var(--pur);background:rgba(124,92,252,.1);border-radius:8px;padding:1px 7px}
 .staff-edit{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .staff-tag{display:flex;align-items:center;gap:4px;background:rgba(124,92,252,.1);color:var(--pur);border-radius:20px;padding:5px 6px 5px 13px;font-size:.95rem;font-weight:700}
@@ -345,7 +359,7 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
 let _uid=Date.now();
 const uid=()=>String(++_uid);
-const APP_VER='v0922-19';
+const APP_VER='v0922-20';
 
 // ═══ 售價組合（統一計價）═══
 // 組合表 [{qty,price}]，例：1斤$80、2斤$150
@@ -861,7 +875,7 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
 }
 
 // ═══ PAGE 2 收銀 ═══
-function PageCashier({config,setConfig,transactions,setTransactions,syncStatus}){
+function PageCashier({config,setConfig,transactions,setTransactions,syncStatus,me,askMe}){
   const {items}=config;
   const [cart,setCart]=useState({});
   const [modal,setModal]=useState(null);
@@ -871,19 +885,8 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
   const setFast=v=>{setFastRaw(v);try{localStorage.setItem('pos_fast',v?'1':'0');}catch(e){}};
   const [toast,setToast]=useState(null);
   const toastTimer=useRef(null);
-  // 記錄人員（每支手機各自記住）
-  const staff=config.staff||[];
-  const [meRaw,setMeRaw]=useState(()=>{try{return localStorage.getItem('pos_staff')||'';}catch(e){return'';}});
-  const setMe=n=>{setMeRaw(n);try{localStorage.setItem('pos_staff',n);}catch(e){}};
-  const me=staff.includes(meRaw)?meRaw:(staff.length===1?staff[0]:'');
-  const [shake,setShake]=useState(false);
-  const needMe=()=>{
-    if(!staff.length||me)return false;
-    haptic('error');setShake(true);setTimeout(()=>setShake(false),400);
-    window.scrollTo({top:0,behavior:'smooth'});
-    alert('請先點選上方「記錄人員」的名字');
-    return true;
-  };
+  // 記錄人員：一進 App 就強制選（App 層的 StaffGate）
+  const needMe=()=>{if(me)return false;haptic('error');askMe();return true;};
   const txRef=useRef(transactions);
   txRef.current=transactions;
   const pickerRef=useRef(null);
@@ -1076,11 +1079,10 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
       h('div',{className:'db'},h('div',{className:'db-l'},'今日營業額'),h('div',{className:'db-v'},fmt(rev))),
       h('div',{className:'db'},h('div',{className:'db-l'},'今日毛利'),h('div',{className:'db-v '+(gp>=0?'g':'r')},fmt(gp)))
     ),
-    staff.length>0
-      ?h('div',{className:'staff-bar'+(me?'':' need')+(shake?' shake':'')},
-          h('span',{className:'staff-l'},me?'👤 記錄人員':'👤 請點選你的名字'),
-          staff.map(n=>h('button',{key:n,className:'staff-chip'+(me===n?' on':''),onClick:()=>setMe(n)},n)))
-      :h('div',{className:'staff-empty'},'👤 可到「設定 → 記錄人員」新增名字，記錄每筆是誰收的'),
+    h('div',{className:'staff-bar'+(me?'':' need'),onClick:askMe},
+      h('span',{className:'staff-l'},'👤 記錄人員'),
+      h('span',{className:'staff-me'},me||'未選擇'),
+      h('button',{className:'staff-switch'},'換人')),
     h('div',{className:'tx-box'},
       h('div',{className:'tx-hd'},
         h('span',{className:'tx-hd-l'},'新增交易'),
@@ -1218,6 +1220,19 @@ function StaffTable({people,title}){
       h('div',{className:'sih'},h('span',null,'人員'),h('span',{className:'r'},'筆數'),h('span',{className:'r'},'營業額')),
       people.map(p=>h('div',{key:p.name,className:'srow'},h('div',{className:'nm'},'👤 '+p.name),h('div',{className:'mn'},p.n+' 筆'),h('div',{className:'mn'},fmt(p.rev))))
     )
+  );
+}
+function StaffGate({staff,last,onPick,onAdd}){
+  const [nm,setNm]=useState('');
+  const add=()=>{const n=nm.trim();if(!n)return;if(staff.includes(n)){onPick(n);return;}onAdd(n);onPick(n);};
+  return h('div',{className:'gate'},
+    h('div',{className:'gate-t'},'👤 誰在收銀？'),
+    h('div',{className:'gate-s'},staff.length?'點自己的名字才能開始使用':'還沒有記錄人員，請先輸入你的名字'),
+    staff.length>0&&h('div',{className:'gate-grid'},
+      staff.map(n=>h('button',{key:n,className:'gate-btn'+(n===last?' last':''),onClick:()=>onPick(n)},n,n===last&&h('span',{className:'gate-last'},'上次')))),
+    h('div',{className:'gate-add'},
+      h('input',{type:'text',placeholder:staff.length?'不在名單？輸入名字新增':'輸入名字',value:nm,maxLength:8,onChange:e=>setNm(e.target.value),onKeyDown:e=>{if(e.key==='Enter')add();}}),
+      h('button',{onClick:add},'＋ 新增並開始'))
   );
 }
 // ═══ PAGE 3 結算 ═══
@@ -1497,6 +1512,17 @@ function App(){
   const [transactions,setTxRaw]=useState([]);
   const [syncStatus,setSyncStatus]=useState('ing');
   const [histKey,setHistKey]=useState(0);
+  const [loaded,setLoaded]=useState(false);
+  const [me,setMeRaw]=useState('');
+  const [gate,setGate]=useState(true);
+  const lastMe=(()=>{try{return localStorage.getItem('pos_staff')||'';}catch(e){return'';}})();
+  const pickMe=n=>{setMeRaw(n);setGate(false);haptic('success');try{localStorage.setItem('pos_staff',n);}catch(e){}};
+  // 離開超過 30 分鐘再回來，重新選人
+  useEffect(()=>{
+    let hid=0;
+    const f=()=>{if(document.hidden)hid=Date.now();else if(hid&&Date.now()-hid>30*60*1000)setGate(true);};
+    document.addEventListener('visibilitychange',f);return()=>document.removeEventListener('visibilitychange',f);
+  },[]);
   const saveTimer=useRef(null);
   const cfgRef=useRef(config);
   const pendingCfg=useRef(0);
@@ -1513,7 +1539,7 @@ function App(){
         const [cfg,txs]=await Promise.all([fbLoadConfig(),fbLoadTodayTx()]);
         if(cfg){const n=normCfg(cfg);cfgRef.current=n;setConfigRaw(n);}
         if(txs.length)setTxRaw(txs);
-        setSyncStatus('ok');
+        setSyncStatus('ok');setLoaded(true);
       }catch(e){console.error(e);setSyncStatus('err');}
     })();
   },[]);
@@ -1540,10 +1566,14 @@ function App(){
   const onSave=async()=>{await fbSaveTodayTx([]);setTxRaw([]);setHistKey(k=>k+1);};
 
   const tabs=['設定','收銀','結算','歷史'];
+  const staffList=config.staff||[];
+  const meOk=!!me&&staffList.includes(me);
+  const showGate=loaded&&(gate||!meOk);
   return h('div',null,
+    showGate&&h(StaffGate,{staff:staffList,last:lastMe,onPick:pickMe,onAdd:n=>setConfig(c=>({...c,staff:[...(c.staff||[]).filter(x=>x!==n),n]}))}),
     h('div',{className:'nav'},tabs.map((t,i)=>h('button',{key:i,className:'ntab'+(tab===i?' on':''),onClick:()=>setTab(i)},h('span',{className:'sn'},'0'+(i+1)),t))),
     tab===0&&h(PageSetup,{config,setConfig,goNext:()=>setTab(1),syncStatus}),
-    tab===1&&h(PageCashier,{config,setConfig,transactions,setTransactions,syncStatus}),
+    tab===1&&h(PageCashier,{config,setConfig,transactions,setTransactions,syncStatus,me:meOk?me:'',askMe:()=>setGate(true)}),
     tab===2&&h(PageSettle,{config,transactions,onSave,syncStatus}),
     h(PageHistory,{active:tab===3,histKey}),
     h(ImageViewer,null)
