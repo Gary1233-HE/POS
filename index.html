@@ -311,6 +311,27 @@ input::placeholder{color:var(--t3)}
 .img-b.share{background:#06c755;color:#fff}
 .img-b.dl{background:#fff;color:#1a1814}
 .img-b.close{background:#3a3833;color:#fff}
+/* 記錄人員 */
+.staff-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--s1);border:1.5px solid var(--bd);border-radius:12px;padding:8px 10px;margin-bottom:12px}
+.staff-bar.need{border-color:var(--red);background:#fff0f3}
+.staff-bar.need .staff-l{color:var(--red)}
+.staff-bar.shake{animation:shk .35s}
+@keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.staff-l{font-size:.85rem;font-weight:900;color:var(--t2);margin-right:2px}
+.staff-chip{background:var(--s2);border:1.5px solid var(--bd);color:var(--t2);border-radius:20px;padding:6px 14px;font-size:.95rem;font-weight:700;font-family:'Noto Sans TC',sans-serif;cursor:pointer}
+.staff-chip.on{background:var(--pur);border-color:var(--pur);color:#fff}
+.staff-empty{font-size:.8rem;color:var(--t3);margin-bottom:12px;text-align:center}
+.txby{font-size:.72rem;font-weight:700;color:var(--pur);background:rgba(124,92,252,.1);border-radius:8px;padding:1px 7px}
+.staff-edit{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.staff-tag{display:flex;align-items:center;gap:4px;background:rgba(124,92,252,.1);color:var(--pur);border-radius:20px;padding:5px 6px 5px 13px;font-size:.95rem;font-weight:700}
+.staff-tag button{background:none;border:none;color:var(--t3);font-size:1rem;cursor:pointer;padding:0 5px}
+.staff-add{display:flex;gap:6px}
+.staff-add input{flex:1;height:42px;border:1.5px solid var(--bd);border-radius:10px;padding:0 12px;font-size:1rem;font-family:'Noto Sans TC',sans-serif;background:var(--s2)}
+.staff-add button{background:var(--pur);color:#fff;border:none;border-radius:10px;padding:0 16px;font-size:.95rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer}
+.staff-names{margin-left:auto;font-size:.85rem;font-weight:700;color:var(--pur);max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.staff-names.none{color:var(--red)}
+.hday-txrow .by{color:var(--pur);font-weight:700}
+.hday-staff{font-size:.85rem;font-weight:700;color:var(--pur);background:rgba(124,92,252,.08);border-radius:10px;padding:8px 10px;margin-bottom:10px;line-height:1.6}
 </style>
 </head>
 <body>
@@ -324,7 +345,7 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
 let _uid=Date.now();
 const uid=()=>String(++_uid);
-const APP_VER='v0922-18';
+const APP_VER='v0922-19';
 
 // ═══ 售價組合（統一計價）═══
 // 組合表 [{qty,price}]，例：1斤$80、2斤$150
@@ -461,6 +482,7 @@ async function fbLoadHistory(){
   try{const s=await db.collection('history').get();return s.docs.map(d=>({...d.data(),_docId:d.id})).sort((a,b)=>(b.date||b._docId||'').localeCompare(a.date||a._docId||''));}
   catch(e){console.error(e);return[];}
 }
+function fbWatchConfig(cb){return db.collection('config').doc('current').onSnapshot(s=>{if(s.metadata&&s.metadata.hasPendingWrites)return;if(s.exists)cb(s.data());},e=>console.error(e));}
 function fbWatchTodayTx(cb){return db.collection('days').doc(todayStr()).onSnapshot(s=>{if(s.exists)cb(s.data().transactions||[]);});}
 
 function PillToggle({options,value,onChange}){
@@ -484,14 +506,23 @@ function itemErr(it){
   return '';
 }
 function itemKind(it){return (it.priceMode==='unit'&&!isWeight(unitOf(it)))?'count':'weight';}
+// 記錄人員統計：[{name,n,rev}]；沒有任何人員記錄時回傳 []
+function staffStat(txs){
+  txs=txs||[];
+  if(!txs.some(t=>t.by))return[];
+  const agg={};
+  txs.forEach(t=>{const k=t.by||'未記錄';if(!agg[k])agg[k]={name:k,n:0,rev:0};agg[k].n++;agg[k].rev+=(t.lines||[]).reduce((a,l)=>a+(l.revenue||0),0);});
+  return Object.values(agg).sort((a,b)=>b.rev-a.rev);
+}
+function staffText(ps){return ps.map(p=>p.name+' '+p.n+'筆 '+fmt(p.rev)).join('　');}
 // ═══ 報表圖片 ═══
-// rep={title,sub,kpis:[{l,v,c}],note,rows:[{name,rev,gp}],daily:[{d,rev,net}]}
+// rep={title,sub,kpis:[{l,v,c}],note,rows:[{name,rev,gp}],people:[{name,n,rev}],daily:[{d,rev,net}]}
 async function drawReport(rep){
   try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}
   const W=1080,P=56,F="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif",M="'Space Mono',Menlo,monospace";
-  const rows=rep.rows||[],daily=rep.daily||[];
+  const rows=rep.rows||[],daily=rep.daily||[],people=rep.people||[];
   const RH=78,DH=64;
-  let H=300+250+(rep.note?70:0)+(rows.length?110+rows.length*RH:0)+(daily.length?110+daily.length*DH:0)+110;
+  let H=300+250+(rep.note?70:0)+(rows.length?110+rows.length*RH:0)+(people.length?110+people.length*RH:0)+(daily.length?110+daily.length*DH:0)+110;
   const c=document.createElement('canvas');c.width=W;c.height=H;
   const x=c.getContext('2d');
   const rr=(X,Y,w,hh,r,fill,stroke)=>{x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+hh,r);x.arcTo(X+w,Y+hh,X,Y+hh,r);x.arcTo(X,Y+hh,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();if(fill){x.fillStyle=fill;x.fill();}if(stroke){x.strokeStyle=stroke;x.lineWidth=3;x.stroke();}};
@@ -533,6 +564,26 @@ async function drawReport(rep){
       txt(nm,P+40,cy,'900 38px '+F,'#1a1814');
       txt(fmt(r.rev),W-P-260,cy,'700 36px '+M,'#1a1814','right');
       txt(fmt(r.gp),W-P-30,cy,'700 36px '+M,r.gp>=0?'#00a07a':'#e0304f','right');
+      y+=RH;
+    });
+    y+=40;
+  }
+  // 人員
+  if(people.length){
+    txt('記錄人員',P,y+30,'900 38px '+F,'#1a1814');
+    txt('筆數',W-P-260,y+30,'700 28px '+F,'#a8a49c','right');
+    txt('營業額',W-P,y+30,'700 28px '+F,'#a8a49c','right');
+    y+=70;
+    const mx=Math.max(...people.map(r=>r.rev),1);
+    rr(P,y,W-P*2,people.length*RH+20,28,'#fff','#e0ddd6');
+    y+=10;
+    people.forEach(r=>{
+      const cy=y+RH/2;
+      rr(P+20,y+8,Math.max((W-P-470-(P+20))*(r.rev/mx),8),RH-16,14,'#e6defe');
+      let nm=r.name;x.font='900 38px '+F;while(x.measureText(nm).width>W-P*2-480&&nm.length>1)nm=nm.slice(0,-1);
+      txt(nm,P+40,cy,'900 38px '+F,'#1a1814');
+      txt(r.n+' 筆',W-P-260,cy,'700 36px '+M,'#6b6860','right');
+      txt(fmt(r.rev),W-P-30,cy,'700 36px '+M,'#1a1814','right');
       y+=RH;
     });
     y+=40;
@@ -587,6 +638,15 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
   const [pastConfigs,setPastConfigs]=useState([]);
   const [openItem,setOpenItem]=useState({});
   const [showFixed,setShowFixed]=useState(false);
+  const staff=config.staff||[];
+  const [showStaff,setShowStaff]=useState(()=>!(config.staff||[]).length);
+  const [newStaff,setNewStaff]=useState('');
+  const addStaff=()=>{
+    const n=newStaff.trim();if(!n)return;
+    if(staff.includes(n)){alert('「'+n+'」已經有了');return;}
+    setConfig(c=>({...c,staff:[...(c.staff||[]),n]}));setNewStaff('');
+  };
+  const rmStaff=n=>{if(window.confirm('刪除記錄人員「'+n+'」？（已記錄的交易不受影響）'))setConfig(c=>({...c,staff:(c.staff||[]).filter(x=>x!==n)}));};
   const [flashId,setFlashId]=useState(null);
   const jumpTo=id=>{
     setOpenItem(o=>({...o,[id]:true}));
@@ -610,7 +670,7 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
     setConfig(c=>({...c,items:[...c.items,{id:nid,name:'',unit:'斤',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:'',tiers:[{id:uid(),qty:'1',price:''}],overUnit:'',shortcuts:[]}]}));
   };
   const rmItem=id=>setConfig(c=>({...c,items:c.items.filter(it=>it.id!==id)}));
-  const loadConfig=d=>{if(window.confirm('載入 '+d.date+' 的品項設定？')){setConfig({fixedCosts:(d.fixedCosts||[]).map(f=>({...f,id:uid()})),items:(d.items||[]).map(it=>({...it,id:uid(),tiers:(it.tiers||[]).map(t=>({...t,id:uid()})),shortcuts:(it.shortcuts||[])}))});}};
+  const loadConfig=d=>{if(window.confirm('載入 '+d.date+' 的品項設定？')){setConfig(c=>({staff:c.staff||[],fixedCosts:(d.fixedCosts||[]).map(f=>({...f,id:uid()})),items:(d.items||[]).map(it=>({...it,id:uid(),tiers:(it.tiers||[]).map(t=>({...t,id:uid()})),shortcuts:(it.shortcuts||[])}))}));}};
 
   // 上移/下移
   const moveItem=(id,dir)=>{
@@ -758,7 +818,22 @@ function PageSetup({config,setConfig,goNext,syncStatus}){
           bad.length?'⚠ 尚未完成設定':'開始收銀 →')
       );
     })(),
-    h('div',{className:'fbox',style:{marginTop:18}},
+    h('div',{className:'fbox staff-box',style:{marginTop:18}},
+      h('div',{className:'fixed-hd',onClick:()=>setShowStaff(v=>!v)},
+        h('span',{className:'sec',style:{margin:0}},'👤 記錄人員'),
+        h('span',{className:'staff-names'+(staff.length?'':' none')},staff.length?staff.join('、'):'尚未設定'),
+        h('span',{className:'fixed-arrow'+(showStaff?' open':'')},'▼')
+      ),
+      showStaff&&h('div',{style:{marginTop:12}},
+        staff.length>0&&h('div',{className:'staff-edit'},staff.map(n=>h('span',{key:n,className:'staff-tag'},n,h('button',{onClick:()=>rmStaff(n)},'×')))),
+        h('div',{className:'staff-add'},
+          h('input',{type:'text',placeholder:'輸入名字',value:newStaff,maxLength:8,onChange:e=>setNewStaff(e.target.value),onKeyDown:e=>{if(e.key==='Enter')addStaff();}}),
+          h('button',{onClick:addStaff},'＋ 新增')
+        ),
+        h('div',{className:'vib-info'},'收銀頁上方點自己的名字，之後每筆交易都會記錄是誰收的')
+      )
+    ),
+    h('div',{className:'fbox'},
       h('div',{className:'fixed-hd',onClick:()=>setShowFixed(v=>!v)},
         h('span',{className:'sec',style:{margin:0}},'固定費用'),
         h('span',{className:'fixed-sum'},fmt(fixedCosts.reduce((a,r)=>a+(parseFloat(r.amount)||0),0))),
@@ -796,6 +871,19 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
   const setFast=v=>{setFastRaw(v);try{localStorage.setItem('pos_fast',v?'1':'0');}catch(e){}};
   const [toast,setToast]=useState(null);
   const toastTimer=useRef(null);
+  // 記錄人員（每支手機各自記住）
+  const staff=config.staff||[];
+  const [meRaw,setMeRaw]=useState(()=>{try{return localStorage.getItem('pos_staff')||'';}catch(e){return'';}});
+  const setMe=n=>{setMeRaw(n);try{localStorage.setItem('pos_staff',n);}catch(e){}};
+  const me=staff.includes(meRaw)?meRaw:(staff.length===1?staff[0]:'');
+  const [shake,setShake]=useState(false);
+  const needMe=()=>{
+    if(!staff.length||me)return false;
+    haptic('error');setShake(true);setTimeout(()=>setShake(false),400);
+    window.scrollTo({top:0,behavior:'smooth'});
+    alert('請先點選上方「記錄人員」的名字');
+    return true;
+  };
   const txRef=useRef(transactions);
   txRef.current=transactions;
   const pickerRef=useRef(null);
@@ -888,17 +976,20 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
       }
     });
     if(!lines.length){haptic('error');alert('請先選擇品項');return;}
-    setTransactions([...transactions,{id:uid(),lines,time:nowTime()}]);
+    if(needMe())return;
+    const tx={id:uid(),lines,time:nowTime()};if(me)tx.by=me;
+    setTransactions([...transactions,tx]);
     haptic('success');
     setCart({});
   };
 
   const delTx=id=>setTransactions(transactions.filter(t=>t.id!==id));
   const recordSingle=(it,val)=>{
+    if(needMe())return;
     let line;
     if(it.priceMode==='unit'){line={itemId:it.id,qty:val,amount:null,revenue:priceForQty(it,val)};}
     else{line={itemId:it.id,qty:qtyForAmount(it,val),amount:val,revenue:val};}
-    const tx={id:uid(),lines:[line],time:nowTime()};
+    const tx={id:uid(),lines:[line],time:nowTime()};if(me)tx.by=me;
     const next=[...txRef.current,tx];
     txRef.current=next;
     setTransactions(next);
@@ -971,7 +1062,7 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
       h('div',{className:'txn'},'#'+(i+1)),
       h('div',{className:'txc'},
         h('div',{className:'txi'},parts.join('　')),
-        h('div',{className:'txa'},h('span',{className:'txr'},fmt(txRev)),h('span',{className:'txg'},'毛利 '+fmt(txGp)),h('span',{className:'txt2'},tx.time))
+        h('div',{className:'txa'},h('span',{className:'txr'},fmt(txRev)),h('span',{className:'txg'},'毛利 '+fmt(txGp)),tx.by&&h('span',{className:'txby'},tx.by),h('span',{className:'txt2'},tx.time))
       ),
       h('button',{className:'tx-del',onClick:()=>delTx(tx.id)},'✕')
     );
@@ -985,6 +1076,11 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
       h('div',{className:'db'},h('div',{className:'db-l'},'今日營業額'),h('div',{className:'db-v'},fmt(rev))),
       h('div',{className:'db'},h('div',{className:'db-l'},'今日毛利'),h('div',{className:'db-v '+(gp>=0?'g':'r')},fmt(gp)))
     ),
+    staff.length>0
+      ?h('div',{className:'staff-bar'+(me?'':' need')+(shake?' shake':'')},
+          h('span',{className:'staff-l'},me?'👤 記錄人員':'👤 請點選你的名字'),
+          staff.map(n=>h('button',{key:n,className:'staff-chip'+(me===n?' on':''),onClick:()=>setMe(n)},n)))
+      :h('div',{className:'staff-empty'},'👤 可到「設定 → 記錄人員」新增名字，記錄每筆是誰收的'),
     h('div',{className:'tx-box'},
       h('div',{className:'tx-hd'},
         h('span',{className:'tx-hd-l'},'新增交易'),
@@ -1115,6 +1211,15 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus})
   );
 }
 
+function StaffTable({people,title}){
+  return h('div',null,
+    h('div',{className:'sec',style:{marginTop:14}},title||'記錄人員'),
+    h('div',{className:'sitems staff-tbl'},
+      h('div',{className:'sih'},h('span',null,'人員'),h('span',{className:'r'},'筆數'),h('span',{className:'r'},'營業額')),
+      people.map(p=>h('div',{key:p.name,className:'srow'},h('div',{className:'nm'},'👤 '+p.name),h('div',{className:'mn'},p.n+' 筆'),h('div',{className:'mn'},fmt(p.rev))))
+    )
+  );
+}
 // ═══ PAGE 3 結算 ═══
 function PageSettle({config,transactions,onSave,syncStatus}){
   const {items,fixedCosts}=config;
@@ -1137,6 +1242,7 @@ function PageSettle({config,transactions,onSave,syncStatus}){
   };
   const {rev,gp,fixed,net,stat}=calcAll();
   const margin=rev>0?(net/rev*100):0;
+  const people=staffStat(transactions);
 
   const doCopy=()=>{
     const fl=fixedCosts.filter(r=>parseFloat(r.amount)>0);
@@ -1144,6 +1250,7 @@ function PageSettle({config,transactions,onSave,syncStatus}){
     if(fl.length>0)lines.push(fl.map(r=>(r.name||'費用')+' -'+fmt(parseFloat(r.amount)||0)).join('　'));
     const se=Object.entries(stat).filter(([,s])=>s.rev>0).map(([id,s])=>{const it=items.find(i=>i.id===id);return'· '+(it?it.name:'?')+'　'+fmt(s.rev);});
     if(se.length>0){lines.push('');se.forEach(l=>lines.push(l));}
+    if(people.length>0){lines.push('');lines.push('👤 '+staffText(people));}
     const text=lines.join('\n');
     const done=()=>{setSettleCopied(true);setTimeout(()=>setSettleCopied(false),2000);};
     navigator.clipboard.writeText(text).then(done).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done();});
@@ -1171,6 +1278,7 @@ function PageSettle({config,transactions,onSave,syncStatus}){
       h('div',{className:'sih'},h('span',null,'品項'),h('span',{className:'r'},'小計'),h('span',{className:'r'},'毛利')),
       items.map(it=>{const s=stat[it.id]||{rev:0,gp:0};return h('div',{key:it.id,className:'srow'},h('div',{className:'nm'},it.name||'未命名'),h('div',{className:'mn '+(s.rev===0?'z':'')},fmt(s.rev)),h('div',{className:'mn '+(s.gp>0?'gp':s.gp===0?'z':'')},fmt(s.gp)));})
     ),
+    people.length>0&&h(StaffTable,{people}),
     saved
       ?h('div',{style:{textAlign:'center',color:'var(--grn)',fontSize:'.85rem',padding:'12px 0',fontWeight:700}},'✓ 已儲存至雲端')
       :h('button',{className:'btn-primary',onClick:doSave,disabled:saving},saving?'儲存中…':'儲存今日記錄 ☁'),
@@ -1180,7 +1288,8 @@ function PageSettle({config,transactions,onSave,syncStatus}){
         title:'今日結算',sub:todayStr()+'　共 '+transactions.length+' 筆',
         kpis:[{l:'營業額',v:fmt(rev)},{l:'毛利',v:fmt(gp),c:'#00a07a'},{l:'淨利',v:fmt(net),c:net>=0?'#00a07a':'#e0304f',s:'淨利率 '+margin.toFixed(1)+'%'}],
         note:fixedCosts.filter(r=>parseFloat(r.amount)>0).map(r=>(r.name||'費用')+' -'+fmt(parseFloat(r.amount)||0)).join('　'),
-        rows:Object.entries(stat).filter(([,s])=>s.rev>0).map(([id,s])=>{const it=items.find(i=>i.id===id);return{name:it?it.name:'?',rev:s.rev,gp:s.gp,kind:it?itemKind(it):'weight'};}).sort((a,b)=>b.rev-a.rev)
+        rows:Object.entries(stat).filter(([,s])=>s.rev>0).map(([id,s])=>{const it=items.find(i=>i.id===id);return{name:it?it.name:'?',rev:s.rev,gp:s.gp,kind:it?itemKind(it):'weight'};}).sort((a,b)=>b.rev-a.rev),
+        people
       },'結算_'+todayStr())},'🖼 存成圖片')
     )
   );
@@ -1240,12 +1349,14 @@ function PageHistory({active,histKey}){
     }));
     return Object.values(agg).sort((a,b)=>b.rev-a.rev);
   }
+  const rangePeople=()=>staffStat([].concat(...view.map(d=>d.transactions||[])));
   function copyRange(){
     const days=view.map(dkey).sort();
     const head=(from||to)?((from||days[0]||'')+' ~ '+(to||days[days.length-1]||'')):'全部記錄';
     const lines=[head+'（'+view.length+'天）',
       '營業額 '+fmt(totalRev)+'　毛利 '+fmt(totalGp)+'　淨利 '+fmt(totalNet)+'（'+rangeMargin.toFixed(0)+'%）',''];
     rangeStat().forEach(s=>lines.push(s.name+'　'+fmt(s.rev)+'　毛利 '+fmt(s.gp)));
+    const rp=rangePeople();if(rp.length){lines.push('');lines.push('👤 '+staffText(rp));}
     lines.push('');
     view.slice().sort((a,b)=>dkey(a).localeCompare(dkey(b))).forEach(d=>lines.push(dkey(d)+'　'+fmt(d.rev||0)+'　淨利 '+fmt(d.net||0)));
     const text=lines.join('\n');
@@ -1263,6 +1374,8 @@ function PageHistory({active,histKey}){
       if(mode==='full')lines.push('── 品項明細 ──');
       se.forEach(s=>lines.push(s.name+'　'+fmt(s.rev)+'　毛利 '+fmt(s.gp)));
     }
+    const dp=staffStat(d.transactions);
+    if(dp.length){lines.push('');lines.push('👤 '+staffText(dp));}
     if(mode==='full'){
       const txs=d.transactions||[];
       if(txs.length>0){
@@ -1270,7 +1383,7 @@ function PageHistory({active,histKey}){
         txs.forEach(tx=>{
           const parts=[];let txRev=0;
           tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=l.revenue||0;parts.push(it.priceMode==='unit'?(it.name||'?')+' '+l.qty+unitOf(it):(it.name||'?')+(l.qty>0?' 約'+l.qty+unitOf(it):''));});
-          lines.push((tx.time||'--:--')+'  '+parts.join(' ')+'  '+fmt(txRev));
+          lines.push((tx.time||'--:--')+(tx.by?' '+tx.by:'')+'  '+parts.join(' ')+'  '+fmt(txRev));
         });
       }
     }
@@ -1314,6 +1427,7 @@ function PageHistory({active,histKey}){
           h('div',{className:'mn gp'},fmt(st.gp))
         ))
       ),
+      rangePeople().length>0&&h(StaffTable,{people:rangePeople(),title:'區間記錄人員'}),
       h('div',{className:'rep-btns'},
         h('button',{className:'copy-btn',onClick:copyRange},rangeCopied?'✓ 已複製':'📋 複製文字'),
         h('button',{className:'img-btn',onClick:()=>{
@@ -1323,6 +1437,7 @@ function PageHistory({active,histKey}){
             title:'區間報表',sub:head+'　'+view.length+' 天',
             kpis:[{l:'營業額',v:fmt(totalRev)},{l:'毛利',v:fmt(totalGp),c:'#00a07a'},{l:'淨利',v:fmt(totalNet),c:totalNet>=0?'#00a07a':'#e0304f',s:'淨利率 '+rangeMargin.toFixed(1)+'%'}],
             rows:rangeStat(),
+            people:rangePeople(),
             daily:view.slice().sort((a,b)=>dkey(a).localeCompare(dkey(b))).map(d=>({d:dkey(d),rev:d.rev||0,net:d.net||0}))
           },'區間_'+head.replace(/[ ~]+/g,'_'));
         }},'🖼 存成圖片')
@@ -1350,17 +1465,19 @@ function PageHistory({active,histKey}){
                 title:'單日結算',sub:dateKey+'　共 '+(d.transactions||[]).length+' 筆',
                 kpis:[{l:'營業額',v:fmt(d.rev||0)},{l:'毛利',v:fmt(d.gp||0),c:'#00a07a'},{l:'淨利',v:fmt(d.net||0),c:(d.net||0)>=0?'#00a07a':'#e0304f',s:'淨利率 '+m.toFixed(1)+'%'}],
                 note:(d.fixedCosts||[]).filter(r=>parseFloat(r.amount)>0).map(r=>(r.name||'費用')+' -'+fmt(parseFloat(r.amount)||0)).join('　'),
-                rows:calcStat(d).sort((a,b)=>b.rev-a.rev)
+                rows:calcStat(d).sort((a,b)=>b.rev-a.rev),
+                people:staffStat(d.transactions)
               },'結算_'+dateKey);
             }},'🖼 圖片')
           ),
+          staffStat(d.transactions).length>0&&h('div',{className:'hday-staff'},'👤 '+staffText(staffStat(d.transactions))),
           h('div',{className:'sec',style:{marginBottom:6}},'交易明細'),
           (d.transactions||[]).length===0
             ?h('div',{style:{fontSize:'.76rem',color:'var(--t3)'}},'無記錄')
             :(d.transactions||[]).map((tx,i)=>{
               const parts=[];let txRev=0;
               tx.lines.forEach(l=>{const it=(d.items||[]).find(i=>i.id===l.itemId);if(!it)return;txRev+=l.revenue||0;parts.push(it.priceMode==='unit'?(it.name||'?')+' '+l.qty+unitOf(it):(it.name||'?')+(l.qty>0?' 約'+l.qty+unitOf(it):''));});
-              return h('div',{key:tx.id||i,className:'hday-txrow'},h('span',{className:'ti'},'#'+(i+1)+' '+parts.join('、')),h('span',{className:'tv'},fmt(txRev)));
+              return h('div',{key:tx.id||i,className:'hday-txrow'},h('span',{className:'ti'},'#'+(i+1)+' ',tx.by&&h('span',{className:'by'},tx.by+'｜'),parts.join('、')),h('span',{className:'tv'},fmt(txRev)));
             })
         )
       );
@@ -1372,6 +1489,7 @@ function PageHistory({active,histKey}){
 function App(){
   const defConfig={
     fixedCosts:[{id:uid(),name:'攤位費',amount:''}],
+    staff:[],
     items:[{id:uid(),name:'',priceMode:'unit',unitPrice:'',profitMode:'margin',profitValue:'',tiers:[],shortcuts:[]}]
   };
   const [tab,setTab]=useState(0);
@@ -1380,20 +1498,20 @@ function App(){
   const [syncStatus,setSyncStatus]=useState('ing');
   const [histKey,setHistKey]=useState(0);
   const saveTimer=useRef(null);
+  const cfgRef=useRef(config);
+  const pendingCfg=useRef(0);
+  const normCfg=cfg=>({...cfg,staff:cfg.staff||[],fixedCosts:cfg.fixedCosts||[],items:(cfg.items||[]).map(it=>{
+    const hasT=(it.tiers||[]).some(t=>parseFloat(t.qty)>0&&t.price!==''&&t.price!=null);
+    if(it.priceMode==='unit'&&!hasT&&parseFloat(it.unitPrice)>0)
+      return{...it,tiers:[{id:uid(),qty:'1',price:String(it.unitPrice)}]};
+    return{...it,tiers:it.tiers||[],shortcuts:it.shortcuts||[]};
+  })});
 
   useEffect(()=>{
     (async()=>{
       try{
         const [cfg,txs]=await Promise.all([fbLoadConfig(),fbLoadTodayTx()]);
-        if(cfg){
-          cfg.items=(cfg.items||[]).map(it=>{
-            const hasT=(it.tiers||[]).some(t=>parseFloat(t.qty)>0&&t.price!==''&&t.price!=null);
-            if(it.priceMode==='unit'&&!hasT&&parseFloat(it.unitPrice)>0)
-              return{...it,tiers:[{id:uid(),qty:'1',price:String(it.unitPrice)}]};
-            return{...it,tiers:it.tiers||[],shortcuts:it.shortcuts||[]};
-          });
-          setConfigRaw(cfg);
-        }
+        if(cfg){const n=normCfg(cfg);cfgRef.current=n;setConfigRaw(n);}
         if(txs.length)setTxRaw(txs);
         setSyncStatus('ok');
       }catch(e){console.error(e);setSyncStatus('err');}
@@ -1401,13 +1519,17 @@ function App(){
   },[]);
 
   useEffect(()=>{const unsub=fbWatchTodayTx(txs=>setTxRaw(txs));return unsub;},[]);
+  // 設定即時同步（別台手機新增人員/品項會自動出現；自己正在改時不覆蓋）
+  useEffect(()=>{const unsub=fbWatchConfig(cfg=>{if(pendingCfg.current)return;const n=normCfg(cfg);cfgRef.current=n;setConfigRaw(n);});return unsub;},[]);
 
   const setConfig=v=>{
-    const next=typeof v==='function'?v(config):v;
+    const next=typeof v==='function'?v(cfgRef.current):v;
+    cfgRef.current=next;
     setConfigRaw(next);
     clearTimeout(saveTimer.current);
+    const ver=(pendingCfg.current=(pendingCfg.current||0)+1);
     setSyncStatus('ing');
-    saveTimer.current=setTimeout(async()=>{try{await fbSaveConfig(next);setSyncStatus('ok');}catch{setSyncStatus('err');}},1500);
+    saveTimer.current=setTimeout(async()=>{try{await fbSaveConfig(cfgRef.current);setSyncStatus('ok');}catch{setSyncStatus('err');}setTimeout(()=>{if(pendingCfg.current===ver)pendingCfg.current=0;},800);},1500);
   };
 
   const setTransactions=async txs=>{
