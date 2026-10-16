@@ -99,7 +99,7 @@ input::placeholder{color:var(--t3)}
 .done-btn{width:100%;background:linear-gradient(135deg,var(--pur),var(--acc));color:#fff;border:none;border-radius:12px;height:48px;font-size:.9rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer;margin-bottom:10px}
 .done-btn:active{opacity:.85}
 /* 格狀品項 - 字大4pt */
-.picker{display:grid;grid-auto-flow:column;gap:6px}
+.picker{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}
 .prow{background:var(--s2);border-radius:10px;padding:10px 8px;border:1.5px solid transparent;cursor:pointer;transition:all .15s;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .prow.sel{background:#fff5f7;border-color:var(--acc)}
 .pname{font-size:1.05rem;font-weight:700;line-height:1.3;color:var(--t1)}
@@ -229,6 +229,10 @@ input::placeholder{color:var(--t3)}
 .prow-edit{position:absolute;top:4px;right:4px;width:30px;height:28px;border-radius:8px;border:1.5px solid var(--acc);background:#fff;color:var(--acc);font-size:.95rem;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:1}
 .prow-edit:active{background:var(--acc);color:#fff}
 .prow:active{transform:scale(.97)}
+.fast-tiers{display:flex;flex-direction:column;gap:5px;width:100%;margin-top:7px}
+.ft-btn{width:100%;background:#fff;border:1.5px solid var(--ora);color:#c45a12;border-radius:9px;padding:7px 2px;font-size:.88rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer;white-space:nowrap;line-height:1.1}
+.ft-btn:active{background:var(--ora);color:#fff}
+.ft-btn.ft-other{border-style:dashed;border-color:#e0b08a;color:var(--t3);font-weight:700;font-size:.8rem;padding:5px 2px}
 /* 收銀模式切換 */
 .mode-sw{display:grid;grid-template-columns:1fr 1.6fr;gap:6px;margin-bottom:10px}
 .mode-btn{height:44px;border-radius:12px;border:2px solid var(--bd);background:var(--s2);color:var(--t2);font-size:.95rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer}
@@ -359,7 +363,7 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
 let _uid=Date.now();
 const uid=()=>String(++_uid);
-const APP_VER='v0922-20';
+const APP_VER='v0922-21';
 
 // ═══ 售價組合（統一計價）═══
 // 組合表 [{qty,price}]，例：1斤$80、2斤$150
@@ -927,7 +931,7 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus,m
   const openModal=it=>{
     const st=getCart(it.id);
     setModal(it);
-    setNumStr(it.priceMode==='unit'?String(st.qty||1):String(st.amount||''));
+    setNumStr(fast?'':(it.priceMode==='unit'?String(st.qty||1):String(st.amount||'')));
   };
   const isQuick=it=>it.priceMode==='unit'&&!isWeight(unitOf(it));
   const tapAdd=it=>{
@@ -1136,7 +1140,11 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus,m
           return h('div',{key:it.id,className:'prow '+itemKind(it)+(st.selected?' sel':'')+(quick&&st.selected?' has-edit':''),onClick:()=>quick?(fast?recordSingle(it,1):tapAdd(it)):openModal(it)},
             quick&&st.selected&&h('button',{className:'prow-edit',onClick:e=>{e.stopPropagation();openModal(it);}},'✎'),
             h('div',{className:'pname'},it.name||'未命名'),
-            st.selected&&h('div',{className:'prow-amt'},dispAmt)
+            st.selected&&h('div',{className:'prow-amt'},dispAmt),
+            // 快速模式：組合價直接點（點格子＝1件，點組合＝整組一筆，✎＝其他數量）
+            fast&&quick&&h('div',{className:'fast-tiers'},
+              getTiers(it).filter(t=>t.qty>1).map(t=>h('button',{key:t.qty,className:'ft-btn',onClick:e=>{e.stopPropagation();recordSingle(it,t.qty);}},t.qty+unitOf(it)+' $'+t.price)),
+              h('button',{className:'ft-btn ft-other',onClick:e=>{e.stopPropagation();openModal(it);}},'✎ 其他數量'))
           );
         })
       )
