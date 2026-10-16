@@ -229,10 +229,9 @@ input::placeholder{color:var(--t3)}
 .prow-edit{position:absolute;top:4px;right:4px;width:30px;height:28px;border-radius:8px;border:1.5px solid var(--acc);background:#fff;color:var(--acc);font-size:.95rem;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:1}
 .prow-edit:active{background:var(--acc);color:#fff}
 .prow:active{transform:scale(.97)}
-.fast-tiers{display:flex;flex-direction:column;gap:5px;width:100%;margin-top:7px}
-.ft-btn{width:100%;background:#fff;border:1.5px solid var(--ora);color:#c45a12;border-radius:9px;padding:7px 2px;font-size:.88rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer;white-space:nowrap;line-height:1.1}
-.ft-btn:active{background:var(--ora);color:#fff}
-.ft-btn.ft-other{border-style:dashed;border-color:#e0b08a;color:var(--t3);font-weight:700;font-size:.8rem;padding:5px 2px}
+.burst{margin-top:4px;background:var(--ora);color:#fff;border-radius:8px;padding:3px 8px;font-size:.95rem;font-weight:900;font-family:'Space Mono',monospace;animation:pop .18s}
+@keyframes pop{0%{transform:scale(1.35)}100%{transform:scale(1)}}
+.toast-undo.minus{background:#3a3833}
 /* 收銀模式切換 */
 .mode-sw{display:grid;grid-template-columns:1fr 1.6fr;gap:6px;margin-bottom:10px}
 .mode-btn{height:44px;border-radius:12px;border:2px solid var(--bd);background:var(--s2);color:var(--t2);font-size:.95rem;font-weight:900;font-family:'Noto Sans TC',sans-serif;cursor:pointer}
@@ -363,7 +362,7 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 const nowTime=()=>new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
 let _uid=Date.now();
 const uid=()=>String(++_uid);
-const APP_VER='v0922-21';
+const APP_VER='v0922-22';
 
 // ═══ 售價組合（統一計價）═══
 // 組合表 [{qty,price}]，例：1斤$80、2斤$150
@@ -1005,6 +1004,47 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus,m
     setToast({txId:tx.id,text:txt});
     clearTimeout(toastTimer.current);
     toastTimer.current=setTimeout(()=>setToast(null),4000);
+    return tx;
+  };
+  // 快速模式連點：同一品項 2 秒內再點 → 合併成同一筆、數量+1、自動套組合價
+  const burstRef=useRef(null);
+  const burstTimer=useRef(null);
+  const [burst,setBurst]=useState(null);
+  const setTxQty=(it,txId,qty)=>{
+    const rev=priceForQty(it,qty);
+    const next=txRef.current.map(t=>t.id===txId?{...t,lines:[{itemId:it.id,qty,amount:null,revenue:rev}]}:t);
+    txRef.current=next;setTransactions(next);
+    setToast({txId,itemId:it.id,qty,text:(it.name||'未命名')+' '+qty+unitOf(it)+' '+fmt(rev)});
+    clearTimeout(toastTimer.current);
+    toastTimer.current=setTimeout(()=>setToast(null),4000);
+    return rev;
+  };
+  const showBurst=(it,qty,rev)=>{
+    setBurst({itemId:it.id,text:qty+unitOf(it)+' '+fmt(rev)});
+    clearTimeout(burstTimer.current);
+    burstTimer.current=setTimeout(()=>{setBurst(null);burstRef.current=null;},2000);
+  };
+  const fastTap=it=>{
+    if(needMe())return;
+    const b=burstRef.current,now=Date.now();
+    if(b&&b.itemId===it.id&&now-b.t<2000&&txRef.current.some(t=>t.id===b.txId)){
+      const qty=b.qty+1;
+      const rev=setTxQty(it,b.txId,qty);
+      burstRef.current={...b,qty,t:now};
+      haptic('success');showBurst(it,qty,rev);
+      return;
+    }
+    const tx=recordSingle(it,1);if(!tx)return;
+    burstRef.current={itemId:it.id,txId:tx.id,qty:1,t:now};
+    setToast(t=>t?{...t,itemId:it.id,qty:1}:t);
+    showBurst(it,1,tx.lines[0].revenue);
+  };
+  const minusToast=()=>{
+    if(!toast||!(toast.qty>1))return;
+    const it=items.find(i=>i.id===toast.itemId);if(!it)return;
+    const qty=toast.qty-1;
+    const rev=setTxQty(it,toast.txId,qty);
+    if(burstRef.current&&burstRef.current.txId===toast.txId){burstRef.current={...burstRef.current,qty,t:Date.now()};showBurst(it,qty,rev);}
   };
   const undoToast=()=>{
     if(!toast)return;
@@ -1012,6 +1052,7 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus,m
     txRef.current=next;
     setTransactions(next);
     setToast(null);
+    burstRef.current=null;setBurst(null);
   };
   const {rev,gp}=totals();
 
@@ -1100,7 +1141,7 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus,m
       ),
       h('div',{className:'mode-sw'},
         h('button',{className:'mode-btn'+(!fast?' on':''),onClick:()=>setFast(false)},'🧺 一般'),
-        h('button',{className:'mode-btn'+(fast?' on fast':''),onClick:()=>setFast(true)},'⚡ 快速（點一下記一筆）')
+        h('button',{className:'mode-btn'+(fast?' on fast':''),onClick:()=>setFast(true)},'⚡ 快速（連點＝多件）')
       ),
       (!fast||subtotal>0)&&h('button',{className:'done-btn',onClick:commit},'✓  完成交易'),
       h('div',{
@@ -1137,14 +1178,11 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus,m
             );
           }
           const quick=isQuick(it);
-          return h('div',{key:it.id,className:'prow '+itemKind(it)+(st.selected?' sel':'')+(quick&&st.selected?' has-edit':''),onClick:()=>quick?(fast?recordSingle(it,1):tapAdd(it)):openModal(it)},
+          return h('div',{key:it.id,className:'prow '+itemKind(it)+(st.selected?' sel':'')+(quick&&st.selected?' has-edit':''),onClick:()=>quick?(fast?fastTap(it):tapAdd(it)):openModal(it)},
             quick&&st.selected&&h('button',{className:'prow-edit',onClick:e=>{e.stopPropagation();openModal(it);}},'✎'),
             h('div',{className:'pname'},it.name||'未命名'),
             st.selected&&h('div',{className:'prow-amt'},dispAmt),
-            // 快速模式：組合價直接點（點格子＝1件，點組合＝整組一筆，✎＝其他數量）
-            fast&&quick&&h('div',{className:'fast-tiers'},
-              getTiers(it).filter(t=>t.qty>1).map(t=>h('button',{key:t.qty,className:'ft-btn',onClick:e=>{e.stopPropagation();recordSingle(it,t.qty);}},t.qty+unitOf(it)+' $'+t.price)),
-              h('button',{className:'ft-btn ft-other',onClick:e=>{e.stopPropagation();openModal(it);}},'✎ 其他數量'))
+            fast&&burst&&burst.itemId===it.id&&h('div',{key:burst.text,className:'burst'},burst.text)
           );
         })
       )
@@ -1156,7 +1194,9 @@ function PageCashier({config,setConfig,transactions,setTransactions,syncStatus,m
     drag&&h('div',{className:'drag-ghost',style:{left:drag.x,top:drag.y}},drag.name),
     toast&&h('div',{className:'toast'},
       h('span',null,'✓ 已記錄　'+toast.text),
-      h('button',{className:'toast-undo',onClick:undoToast},'復原')
+      h('div',{style:{display:'flex',gap:6,flexShrink:0}},
+        toast.qty>1&&h('button',{className:'toast-undo minus',onClick:minusToast},'−1'),
+        h('button',{className:'toast-undo',onClick:undoToast},'復原'))
     ),
     modal&&h('div',{className:'modal-overlay'},
       h('div',{className:'modal'},
